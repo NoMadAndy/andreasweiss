@@ -2,6 +2,15 @@
 
 Alle relevanten Änderungen an diesem Projekt werden hier dokumentiert.
 
+## [2.5.0] – 2026-02-14
+
+### Hinzugefügt
+
+- **Einheitlicher Kandidaten-Header:** Portrait, Name, Partei-Logo und Wahldatum erscheinen jetzt identisch auf jeder Unterseite (Home, Themen, Impressum, Datenschutz)
+- Neues Jinja2-Partial `_candidate_header.html` für konsistente Wiederverwendung
+- Eigene CSS-Section `.candidate-hero-bar` mit flexiblem Layout
+- Kandidaten-Farbvariable `--cand-color` stellt sicher, dass der Header auch auf Theme-Seiten die Kandidatenfarbe nutzt
+
 ## [2.4.3] – 2026-02-14
 
 ### Geändert

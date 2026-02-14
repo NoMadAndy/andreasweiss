@@ -2,13 +2,12 @@
 
 {% block title %}{{ page_title }} – {{ candidate.name }}{% endblock %}
 
+{% block head_extra %}
+<style>:root{--theme-color:{{ candidate.theme_color or '#1E6FB9' }}}</style>
+{% endblock %}
+
 {% block header %}
-<header class="site-header">
-    <div class="container">
-        <a href="/{{ candidate.slug }}/" class="back-link">← Zurück</a>
-        <span class="site-tagline">{{ candidate.tagline or candidate.name }}</span>
-    </div>
-</header>
+{% include '_candidate_header.html' %}
 {% endblock %}
 
 {% block content %}

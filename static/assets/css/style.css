@@ -108,7 +108,6 @@ a { color: var(--theme-color); }
   border-radius: 20px;
   font-size: 0.8rem;
   font-weight: 600;
-  margin-bottom: 1rem;
 }
 
 /* ── Hero ────────────────────────────────────────────────────────── */
@@ -466,11 +465,25 @@ a { color: var(--theme-color); }
 }
 
 /* ── Portrait & Logo Header ──────────────────────────────────────────── */
+.candidate-hero-bar {
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border);
+  padding: 1.25rem 0;
+  margin-bottom: 0.5rem;
+}
+
+.candidate-hero-bar .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
 .candidate-header {
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 1rem;
 }
 
 .portrait {
@@ -478,7 +491,7 @@ a { color: var(--theme-color); }
   height: 80px;
   border-radius: 50%;
   object-fit: cover;
-  border: 3px solid var(--theme-color);
+  border: 3px solid var(--cand-color, var(--theme-color));
   flex-shrink: 0;
 }
 

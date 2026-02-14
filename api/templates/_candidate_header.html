@@ -1,0 +1,27 @@
+{# Reusable candidate header – included on every candidate page #}
+<header class="site-header">
+    <div class="container">
+        <a href="/{{ candidate.slug }}/" class="site-logo">{{ candidate.name }}</a>
+        <span class="site-tagline">{{ candidate.tagline or 'Kommunalwahl 2026' }}</span>
+    </div>
+</header>
+
+<section class="candidate-hero-bar" style="--cand-color:{{ candidate.theme_color or '#1E6FB9' }}">
+    <div class="container">
+        <div class="candidate-header">
+            <img src="/uploads/{{ candidate.slug }}/portrait.jpg" alt="{{ candidate.name }}" class="portrait"
+                 onerror="this.style.display='none'">
+            <div class="candidate-info">
+                <p class="name">{{ candidate.name }}</p>
+                <p class="party">
+                    <img src="/uploads/{{ candidate.slug }}/logo.svg" alt="" class="party-logo"
+                         onerror="this.src='/uploads/{{ candidate.slug }}/logo.png';this.onerror=function(){this.style.display='none'}">
+                    {{ candidate.party }}
+                </p>
+            </div>
+        </div>
+        {% if candidate.election_date %}
+        <span class="election-badge" style="background:var(--cand-color)">Wahl am {{ candidate.election_date }}</span>
+        {% endif %}
+    </div>
+</section>
