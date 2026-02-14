@@ -2,6 +2,13 @@
 
 Alle relevanten Änderungen an diesem Projekt werden hier dokumentiert.
 
+## [2.4.1] – 2026-02-14
+
+### Geändert
+
+- **GeoIP-Upload:** Von Kandidaten-Admin auf Plattform-Admin verschoben (`POST /api/platform/upload/geoip`)
+- GeoIP-Datenbank gilt plattformweit für alle Kandidaten, daher nur noch über den globalen Admin verwaltbar
+
 ## [2.4.0] – 2026-02-14
 
 ### Hinzugefügt

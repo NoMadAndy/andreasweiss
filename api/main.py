@@ -1,6 +1,6 @@
 """FastAPI backend – Multi-tenant Wahl2026 platform."""
 
-VERSION = "2.4.0"
+VERSION = "2.4.1"
 
 import csv
 import hashlib
@@ -1222,8 +1222,8 @@ async def upload_logo(slug: str, file: UploadFile = File(...), _admin: str = Dep
     return {"ok": True, "file": fname, "size": len(data)}
 
 
-@app.post("/api/{slug}/admin/upload/geoip")
-async def upload_geoip(slug: str, file: UploadFile = File(...), _admin: str = Depends(verify_admin)):
+@app.post("/api/platform/upload/geoip")
+async def upload_geoip(file: UploadFile = File(...), _admin: str = Depends(verify_platform_admin)):
     if not file.filename.endswith(".mmdb"):
         raise HTTPException(400, "Nur .mmdb Dateien erlaubt")
     data = await file.read()

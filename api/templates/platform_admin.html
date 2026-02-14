@@ -141,6 +141,19 @@ td .mini{font-size:.72rem;color:#8e8e93;display:block;margin-top:.1rem}
       </div>
     </div>
   </section>
+
+  <!-- GeoIP Upload -->
+  <section class="panel">
+    <div class="panel-header"><h2>🌍 GeoIP Datenbank</h2></div>
+    <div class="upload-card" id="uc-geoip" style="max-width:400px">
+      <div class="preview-ph">🌍</div>
+      <h3>GeoLite2-City Datenbank</h3>
+      <p>GeoLite2-City.mmdb · max. 150 MB · gilt für alle Kandidaten</p>
+      <input type="file" accept=".mmdb" class="upload-input" id="file-geoip">
+      <label for="file-geoip" class="upload-label">🌍 Datei wählen</label>
+      <div class="upload-status" id="status-geoip"></div>
+    </div>
+  </section>
 </div>
 
 <script>
@@ -264,6 +277,24 @@ function doImportDB(file){
 
 function fmtB(b){if(b<1024)return b+" B";if(b<1048576)return(b/1024).toFixed(1)+" KB";return(b/1048576).toFixed(1)+" MB"}
 function esc(s){var d=document.createElement("div");d.textContent=String(s);return d.innerHTML}
+
+// ── GeoIP Upload ────────────────────────────────────────────
+var geoInput=document.getElementById("file-geoip");
+var geoStatus=document.getElementById("status-geoip");
+var geoCard=document.getElementById("uc-geoip");
+geoInput.addEventListener("change",function(){if(geoInput.files.length)doUploadGeoip(geoInput.files[0])});
+geoCard.addEventListener("dragover",function(e){e.preventDefault();geoCard.classList.add("dragover")});
+geoCard.addEventListener("dragleave",function(){geoCard.classList.remove("dragover")});
+geoCard.addEventListener("drop",function(e){e.preventDefault();geoCard.classList.remove("dragover");if(e.dataTransfer.files.length)doUploadGeoip(e.dataTransfer.files[0])});
+function doUploadGeoip(file){
+  if(!file.name.endsWith(".mmdb")){geoStatus.className="upload-status err";geoStatus.textContent="❌ Nur .mmdb Dateien erlaubt";return}
+  geoStatus.className="upload-status";geoStatus.textContent="Hochladen… ("+fmtB(file.size)+")";
+  var fd=new FormData();fd.append("file",file);
+  fetch("/api/platform/upload/geoip",{method:"POST",headers:{"Authorization":auth},body:fd})
+  .then(function(r){if(!r.ok)return r.json().then(function(d){throw new Error(d.detail||"Fehler")});return r.json()})
+  .then(function(d){geoStatus.className="upload-status ok";geoStatus.textContent="✅ "+d.file+" ("+fmtB(d.size)+")"+(d.loaded?" · geladen":" · nicht geladen")})
+  .catch(function(err){geoStatus.className="upload-status err";geoStatus.textContent="❌ "+err.message});
+}
 })();
 </script>
 </body>

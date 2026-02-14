@@ -274,13 +274,6 @@ tbody tr:hover{background:#fafbfc}
           <label for="file-logo" class="upload-label">🏷️ Logo wählen</label>
           <div class="upload-status" id="status-logo"></div>
         </div>
-        <div class="upload-card" id="uc-geoip">
-          <div class="preview-ph">🌍</div>
-          <h3>GeoIP Datenbank</h3><p>GeoLite2-City.mmdb · max. 150 MB</p>
-          <input type="file" accept=".mmdb" class="upload-input" id="file-geoip">
-          <label for="file-geoip" class="upload-label">🌍 Datei wählen</label>
-          <div class="upload-status" id="status-geoip"></div>
-        </div>
       </div>
     </section>
   </div>
@@ -707,7 +700,6 @@ function doUpload(file,endpoint,statusEl,previewId){
 function fmtB(b){if(b<1024)return b+" B";if(b<1048576)return(b/1024).toFixed(1)+" KB";return(b/1048576).toFixed(1)+" MB"}
 setupUpload("file-portrait","/admin/upload/portrait","status-portrait","prev-portrait");
 setupUpload("file-logo","/admin/upload/logo","status-logo","prev-logo");
-setupUpload("file-geoip","/admin/upload/geoip","status-geoip",null);
 
 function esc(s){var d=document.createElement("div");d.textContent=String(s);return d.innerHTML}
 })();
