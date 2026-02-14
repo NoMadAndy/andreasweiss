@@ -2,6 +2,16 @@
 
 Alle relevanten Änderungen an diesem Projekt werden hier dokumentiert.
 
+## [3.7.0] – 2026-02-14
+
+### Verbessert
+
+- **Responsive Design für Smartphones:** Alle Seiten für iPhone und Android optimiert
+- **style.css:** Umfassende Mobile-Breakpoints (480px) für Header, Hero, Cards, Portrait, About, Umfragen/Quiz, Footer, Feedback-Formular, Partnerbereich
+- **Landing Page:** Hero, Kampagnen-Banner und Kandidaten-Grid auf kleinen Screens kompakter
+- **Plattform-Admin:** Login, Tabs, Statistik-Karten, Tabellen, Buttons, Formulare und Dropdowns mobilfreundlich
+- **Kandidaten-Admin:** Tab-Leiste scrollbar, Statistiken kompakter, Upload-Cards einspaltig, Formulare mobilfreundlich
+
 ## [3.6.1] – 2026-02-14
 
 ### Geändert

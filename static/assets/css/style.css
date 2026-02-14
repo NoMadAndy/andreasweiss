@@ -599,14 +599,37 @@ a { color: var(--theme-color); }
 
 /* ── Responsive ─────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
-  .hero h1 {
-    font-size: 1.4rem;
-  }
-  .cards-grid {
-    grid-template-columns: 1fr;
-  }
-  .portrait {
-    width: 64px;
-    height: 64px;
-  }
+  html { font-size: 15px; }
+  .container { padding: 0 .75rem; }
+  .hero h1 { font-size: 1.35rem; }
+  .hero p { font-size: .92rem; }
+  .cards-grid { grid-template-columns: 1fr; gap: .6rem; }
+  .card-link { padding: 1rem; }
+  .card-link h3 { font-size: .92rem; }
+  .portrait { width: 56px; height: 56px; }
+  .candidate-hero-bar { padding: .85rem 0; }
+  .candidate-hero-bar .container { flex-direction: column; align-items: flex-start; gap: .5rem; }
+  .candidate-info .name { font-size: 1rem; }
+  .election-badge { font-size: .72rem; padding: .25rem .65rem; }
+  .site-header .container { gap: .25rem; }
+  .site-logo { font-size: .95rem; }
+  .site-tagline { font-size: .7rem; max-width: 45%; text-align: right; }
+  .about-box { padding: 1.15rem; }
+  .about-box h2 { font-size: 1rem; }
+  .about-box p { font-size: .88rem; }
+  .section-card { padding: 1.15rem; }
+  .section-card h2 { font-size: 1rem; }
+  .option-btn { padding: .7rem .85rem; font-size: .88rem; }
+  .result-label { min-width: 70px; font-size: .75rem; }
+  .cta-banner { padding: .85rem 1rem; }
+  .cta-banner p { font-size: .9rem; }
+  .partner-cards { grid-template-columns: 1fr; }
+  .partner-card { padding: 1rem; }
+  .legal-content { padding: 1.15rem; margin: 1rem 0; }
+  .legal-content h1 { font-size: 1.25rem; }
+  .site-footer .footer-links,
+  .site-footer .footer-external { gap: 1rem; flex-wrap: wrap; justify-content: center; }
+  .site-footer a { font-size: .78rem; }
+  .feedback-form textarea { min-height: 60px; font-size: .88rem; }
+  .feedback-form .submit-btn { font-size: .85rem; padding: .55rem 1.2rem; }
 }
