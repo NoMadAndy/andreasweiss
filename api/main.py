@@ -1,6 +1,6 @@
 """FastAPI backend – Multi-tenant Wahl2026 platform."""
 
-VERSION = "2.3.0"
+VERSION = "2.4.0"
 
 import csv
 import hashlib
@@ -162,6 +162,11 @@ class PageData(BaseModel):
 class LinkData(BaseModel):
     label: str = Field(..., min_length=1, max_length=200)
     url: str = Field(..., min_length=5, max_length=500)
+
+
+class CredentialsUpdate(BaseModel):
+    new_user: Optional[str] = Field(None, min_length=2, max_length=50)
+    new_pass: Optional[str] = Field(None, min_length=6, max_length=100)
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -795,6 +800,28 @@ async def update_content(slug: str, data: ProfileUpdate, _admin: str = Depends(v
     finally:
         db.close()
     return {"ok": True}
+
+
+@app.put("/api/{slug}/admin/credentials")
+async def update_credentials(slug: str, data: CredentialsUpdate, _admin: str = Depends(verify_admin)):
+    """Change admin username and/or password. Requires current valid auth."""
+    _require_candidate(slug)
+    updates = {}
+    if data.new_user is not None:
+        updates["admin_user"] = data.new_user
+    if data.new_pass is not None:
+        updates["admin_pass"] = data.new_pass
+    if not updates:
+        raise HTTPException(400, "Kein neuer Benutzername oder Passwort angegeben")
+    set_clause = ", ".join(f"{k}=?" for k in updates)
+    values = list(updates.values()) + [slug]
+    db = get_db()
+    try:
+        db.execute(f"UPDATE candidates SET {set_clause} WHERE slug=?", values)
+        db.commit()
+    finally:
+        db.close()
+    return {"ok": True, "updated": list(updates.keys())}
 
 
 @app.post("/api/{slug}/admin/pages")

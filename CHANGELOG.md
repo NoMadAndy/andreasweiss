@@ -2,6 +2,14 @@
 
 Alle relevanten Änderungen an diesem Projekt werden hier dokumentiert.
 
+## [2.4.0] – 2026-02-14
+
+### Hinzugefügt
+
+- **Zugangsdaten ändern:** Kandidaten können Benutzername und Passwort im Admin-Dashboard ändern (Tab „Inhalte")
+- **Endpoint:** `PUT /api/{slug}/admin/credentials` mit Validierung (min. 6 Zeichen, Bestätigung)
+- **UI:** Formular mit Passwort-Bestätigung, Sicherheitsabfrage und automatischer Neu-Anmeldung
+
 ## [2.3.0] – 2026-02-14
 
 ### Hinzugefügt

@@ -219,6 +219,17 @@ tbody tr:hover{background:#fafbfc}
       <button class="save-btn" id="save-legal2">💾 Datenschutz speichern</button>
       <span class="save-msg" id="legal2-msg"></span>
     </section>
+
+    <section class="panel">
+      <div class="panel-header"><h2>🔑 Zugangsdaten ändern</h2></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Neuer Benutzername</label><input type="text" id="cred-user" placeholder="Leer lassen = nicht ändern" autocomplete="off"></div>
+        <div class="form-group"><label>Neues Passwort</label><input type="password" id="cred-pass" placeholder="Leer lassen = nicht ändern" autocomplete="new-password"></div>
+        <div class="form-group"><label>Passwort bestätigen</label><input type="password" id="cred-pass2" placeholder="Passwort wiederholen" autocomplete="new-password"></div>
+      </div>
+      <button class="save-btn" id="save-creds" style="background:linear-gradient(135deg,#D97706,#b45309)">🔑 Zugangsdaten speichern</button>
+      <span class="save-msg" id="creds-msg"></span>
+    </section>
   </div>
 
   <!-- ═══ TAB: Seiten ═══ -->
@@ -534,6 +545,35 @@ document.getElementById("save-legal2").addEventListener("click",function(){
   .then(function(){msg.className="save-msg ok";msg.textContent="✅ Gespeichert";contentData=null;btn.disabled=false;
     setTimeout(function(){msg.textContent=""},3000)})
   .catch(function(){msg.className="save-msg err";msg.textContent="❌ Fehler";btn.disabled=false});
+});
+
+// ── Credentials ─────────────────────────────────────────────
+document.getElementById("save-creds").addEventListener("click",function(){
+  var btn=this,msg=document.getElementById("creds-msg");
+  var newUser=document.getElementById("cred-user").value.trim();
+  var newPass=document.getElementById("cred-pass").value;
+  var newPass2=document.getElementById("cred-pass2").value;
+  msg.textContent="";
+  if(!newUser&&!newPass){msg.className="save-msg err";msg.textContent="❌ Benutzername oder Passwort angeben";return}
+  if(newPass&&newPass!==newPass2){msg.className="save-msg err";msg.textContent="❌ Passwörter stimmen nicht überein";return}
+  if(newPass&&newPass.length<6){msg.className="save-msg err";msg.textContent="❌ Passwort muss mind. 6 Zeichen haben";return}
+  if(!confirm("Zugangsdaten wirklich ändern?\n\nDu wirst danach mit den neuen Daten erneut anmelden müssen.")){return}
+  var data={};
+  if(newUser)data.new_user=newUser;
+  if(newPass)data.new_pass=newPass;
+  btn.disabled=true;
+  apiFetch("/admin/credentials",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)})
+  .then(function(){
+    msg.className="save-msg ok";msg.textContent="✅ Zugangsdaten geändert – bitte neu anmelden";
+    document.getElementById("cred-user").value="";document.getElementById("cred-pass").value="";document.getElementById("cred-pass2").value="";
+    // Update stored auth & force re-login
+    var u=newUser||document.getElementById("user").value;
+    var p=newPass||"";
+    if(newUser&&newPass){auth="Basic "+btoa(u+":"+p);localStorage.setItem("wahl_admin_"+SLUG,auth)}
+    else{localStorage.removeItem("wahl_admin_"+SLUG);setTimeout(function(){location.reload()},1500)}
+    btn.disabled=false;
+  })
+  .catch(function(){msg.className="save-msg err";msg.textContent="❌ Fehler beim Speichern";btn.disabled=false});
 });
 
 // ── Pages Editor ────────────────────────────────────────────
