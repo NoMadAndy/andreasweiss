@@ -52,8 +52,8 @@
     </section>
     {% endif %}
 
+    {% if candidates is defined and candidates %}
     <h2 class="section-title">Unsere Kandidaten</h2>
-    {% if candidates %}
     <div class="candidates-grid">
         {% for c in candidates %}
         <a href="/{{ c.slug }}/" class="cand-card" style="--cc:{{ c.theme_color or '#1E6FB9' }}">
@@ -73,8 +73,6 @@
         </a>
         {% endfor %}
     </div>
-    {% else %}
-    <p class="empty-state">Noch keine Kandidaten registriert.</p>
     {% endif %}
 </main>
 

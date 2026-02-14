@@ -1,6 +1,6 @@
 """FastAPI backend – Multi-tenant Wahl2026 platform."""
 
-VERSION = "3.0.0"
+VERSION = "3.1.0"
 
 import csv
 import hashlib
@@ -218,7 +218,12 @@ Bei Fragen wenden Sie sich an die im Impressum genannte Kontaktadresse.</p>"""
 @app.get("/", response_class=HTMLResponse)
 async def landing(request: Request):
     settings = get_platform_settings()
-    candidates = get_all_candidates()
+    # Redirect if configured
+    redirect_url = (settings.get("redirect_url") or "").strip()
+    if redirect_url:
+        from starlette.responses import RedirectResponse
+        return RedirectResponse(url=redirect_url, status_code=302)
+    candidates = get_all_candidates() if settings.get("show_candidates", "1") == "1" else []
     return templates.TemplateResponse("landing.html", {
         "request": request,
         "settings": settings,
@@ -301,6 +306,7 @@ async def platform_put_settings(request: Request, _admin: str = Depends(verify_p
     allowed_keys = {
         "site_title", "site_subtitle", "hero_headline", "hero_text",
         "campaign_title", "campaign_text", "footer_text",
+        "show_candidates", "redirect_url",
     }
     filtered = {k: str(v) for k, v in data.items() if k in allowed_keys}
     if filtered:

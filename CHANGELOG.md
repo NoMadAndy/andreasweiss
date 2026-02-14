@@ -2,6 +2,15 @@
 
 Alle relevanten Änderungen an diesem Projekt werden hier dokumentiert.
 
+## [3.1.0] – 2026-02-14
+
+### Hinzugefügt
+
+- **Kandidatenvorschau ein-/ausschaltbar:** Plattform-Admin kann über Checkbox steuern, ob die Kandidatenliste auf der Startseite angezeigt wird
+- **Startseiten-Redirect:** Optionale Weiterleitungs-URL konfigurierbar – wenn gesetzt, leitet `/` per 302-Redirect auf die angegebene URL um (z. B. wenn keine eigene Startseite gewünscht ist)
+- Neue Settings-Keys `show_candidates` und `redirect_url` in `platform_settings`
+- Automatische Migration: Neue Keys werden bei bestehenden Installationen automatisch ergänzt
+
 ## [3.0.0] – 2026-02-14
 
 ### Hinzugefügt

@@ -154,21 +154,31 @@ def init_db():
         );
     """)
     # Seed default platform settings if empty
+    defaults = {
+        "site_title": "Kommunalwahl 2026",
+        "site_subtitle": "Gemeinsam für unsere Gemeinde",
+        "hero_headline": "Kommunalwahl 2026",
+        "hero_text": "Lernen Sie unsere Kandidaten kennen – mit Umfragen, Quiz und Bürgerbeteiligung.",
+        "campaign_title": "",
+        "campaign_text": "",
+        "footer_text": "Wahl 2026 · macherwerkstatt.cc",
+        "show_candidates": "1",
+        "redirect_url": "",
+    }
     existing = conn.execute("SELECT COUNT(*) c FROM platform_settings").fetchone()[0]
     if existing == 0:
-        defaults = {
-            "site_title": "Kommunalwahl 2026",
-            "site_subtitle": "Gemeinsam für unsere Gemeinde",
-            "hero_headline": "Kommunalwahl 2026",
-            "hero_text": "Lernen Sie unsere Kandidaten kennen – mit Umfragen, Quiz und Bürgerbeteiligung.",
-            "campaign_title": "",
-            "campaign_text": "",
-            "footer_text": "Wahl 2026 · macherwerkstatt.cc",
-        }
         conn.executemany(
             "INSERT INTO platform_settings (key, value) VALUES (?, ?)",
             defaults.items(),
         )
+        conn.commit()
+    else:
+        # Ensure new keys are added to existing installations
+        for k, v in defaults.items():
+            conn.execute(
+                "INSERT OR IGNORE INTO platform_settings (key, value) VALUES (?, ?)",
+                (k, v),
+            )
         conn.commit()
     conn.close()
 
