@@ -2,6 +2,21 @@
 
 Alle relevanten Änderungen an diesem Projekt werden hier dokumentiert.
 
+## [2.4.3] – 2026-02-14
+
+### Geändert
+
+- **Startseite geschützt:** Landing-Page (`/`) und Kandidaten-Registrierung (`POST /api/register`) nur noch für Plattform-Admin zugänglich
+- Login-Formular auf der Startseite, Kandidatenliste wird erst nach Anmeldung angezeigt
+- Registrierung sendet Authorization-Header mit Platform-Admin-Credentials
+- Gleiche Session wie Plattform-Admin (`/admin/`) – einmal anmelden reicht
+
+## [2.4.2] – 2026-02-14
+
+### Hinzugefügt
+
+- **Impressum/Datenschutz vorausgefüllt:** Neue Kandidaten erhalten bei der Registrierung automatisch Standard-Impressum- und Datenschutztexte mit ihrem Namen vorausgefüllt
+
 ## [2.4.1] – 2026-02-14
 
 ### Geändert

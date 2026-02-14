@@ -1,6 +1,6 @@
 """FastAPI backend – Multi-tenant Wahl2026 platform."""
 
-VERSION = "2.4.2"
+VERSION = "2.4.3"
 
 import csv
 import hashlib
@@ -216,10 +216,8 @@ Bei Fragen wenden Sie sich an die im Impressum genannte Kontaktadresse.</p>"""
 
 @app.get("/", response_class=HTMLResponse)
 async def landing(request: Request):
-    candidates = get_all_candidates()
     return templates.TemplateResponse("landing.html", {
         "request": request,
-        "candidates": candidates,
     })
 
 
@@ -496,7 +494,7 @@ RESERVED_SLUGS = {"api", "assets", "uploads", "admin", "static", "health"}
 
 
 @app.post("/api/register")
-async def register(data: RegisterData):
+async def register(data: RegisterData, _admin: str = Depends(verify_platform_admin)):
     if data.slug in RESERVED_SLUGS:
         raise HTTPException(400, "Dieser Slug ist reserviert")
     db = get_db()
