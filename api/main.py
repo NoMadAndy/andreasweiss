@@ -1,6 +1,6 @@
 """FastAPI backend – Multi-tenant Wahl2026 platform."""
 
-VERSION = "3.2.0"
+VERSION = "3.3.0"
 
 import csv
 import hashlib
@@ -572,6 +572,164 @@ async def delete_candidate(slug: str, _admin: str = Depends(verify_platform_admi
     if os.path.isdir(upload_dir):
         shutil.rmtree(upload_dir, ignore_errors=True)
     return {"ok": True, "deleted": slug}
+
+
+@app.get("/api/platform/candidates/{slug}/export")
+async def export_single_candidate(slug: str, _admin: str = Depends(verify_platform_admin)):
+    """Export a single candidate with pages, links and analytics as JSON."""
+    candidate = get_candidate(slug)
+    if not candidate:
+        raise HTTPException(404, "Kandidat nicht gefunden")
+    db = get_db()
+    try:
+        pages = [dict(r) for r in db.execute(
+            "SELECT * FROM candidate_pages WHERE candidate_slug=? ORDER BY sort_order, id", (slug,)
+        ).fetchall()]
+        links = [dict(r) for r in db.execute(
+            "SELECT * FROM candidate_links WHERE candidate_slug=? ORDER BY sort_order, id", (slug,)
+        ).fetchall()]
+        visits = [dict(r) for r in db.execute(
+            "SELECT ts, page, city, region, country, user_agent_short, ref FROM visits WHERE candidate_slug=? ORDER BY ts DESC", (slug,)
+        ).fetchall()]
+        polls = [dict(r) for r in db.execute(
+            "SELECT ts, page, poll_id, option, city, region, country FROM poll_votes WHERE candidate_slug=? ORDER BY ts DESC", (slug,)
+        ).fetchall()]
+        quizzes = [dict(r) for r in db.execute(
+            "SELECT ts, page, quiz_id, option, is_correct, city, region, country FROM quiz_answers WHERE candidate_slug=? ORDER BY ts DESC", (slug,)
+        ).fetchall()]
+        feedbacks = [dict(r) for r in db.execute(
+            "SELECT ts, page, message, city, region, country FROM feedback WHERE candidate_slug=? ORDER BY ts DESC", (slug,)
+        ).fetchall()]
+    finally:
+        db.close()
+    safe = {k: v for k, v in candidate.items() if k not in ("admin_user", "admin_pass")}
+    payload = {
+        "export_date": datetime.now().isoformat(),
+        "version": VERSION,
+        "candidate": safe,
+        "pages": pages,
+        "links": links,
+        "analytics": {
+            "visits": visits,
+            "poll_votes": polls,
+            "quiz_answers": quizzes,
+            "feedback": feedbacks,
+        },
+    }
+    content = json.dumps(payload, ensure_ascii=False, indent=2)
+    return Response(
+        content=content,
+        media_type="application/json",
+        headers={"Content-Disposition": f"attachment; filename={slug}_export.json"},
+    )
+
+
+@app.post("/api/platform/candidates/{slug}/import")
+async def import_single_candidate(
+    slug: str,
+    file: UploadFile = File(...),
+    _admin: str = Depends(verify_platform_admin),
+):
+    """Import data into an existing candidate from a JSON export file (platform admin)."""
+    candidate = get_candidate(slug)
+    if not candidate:
+        raise HTTPException(404, "Kandidat nicht gefunden")
+    if not file.filename.endswith(".json"):
+        raise HTTPException(400, "Nur .json Dateien erlaubt")
+    raw = await file.read()
+    if len(raw) > 50 * 1024 * 1024:
+        raise HTTPException(400, "Datei zu gro\u00df (max 50 MB)")
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError:
+        raise HTTPException(400, "Ung\u00fcltiges JSON")
+
+    # Support both single-candidate export format and array format
+    if "candidate" in payload:
+        c_data = payload["candidate"]
+        pages_data = payload.get("pages", [])
+        links_data = payload.get("links", [])
+    elif isinstance(payload, list) and len(payload) == 1:
+        c_data = payload[0]
+        pages_data = c_data.get("pages", [])
+        links_data = c_data.get("links", [])
+    else:
+        c_data = payload
+        pages_data = payload.get("pages", [])
+        links_data = payload.get("links", [])
+
+    imported = {"profile": False, "pages": 0, "links": 0}
+    db = get_db()
+    try:
+        # Update profile fields
+        profile_fields = [
+            "name", "party", "tagline", "election_date", "theme_color",
+            "headline", "intro_text", "cta_text", "cta_sub",
+            "about_title", "about_text", "about_name_line",
+            "impressum_html", "datenschutz_html",
+        ]
+        sets, vals = [], []
+        for f in profile_fields:
+            if f in c_data and c_data[f] is not None:
+                sets.append(f"{f}=?")
+                vals.append(c_data[f])
+        if sets:
+            vals.append(slug)
+            db.execute(f"UPDATE candidates SET {','.join(sets)} WHERE slug=?", vals)
+            imported["profile"] = True
+
+        # Upsert pages
+        for p in pages_data:
+            page_slug = p.get("slug")
+            if not page_slug:
+                continue
+            poll_opts = json.dumps(p.get("poll_options", []), ensure_ascii=False) if isinstance(p.get("poll_options"), list) else p.get("poll_options", "[]")
+            quiz_opts = json.dumps(p.get("quiz_options", []), ensure_ascii=False) if isinstance(p.get("quiz_options"), list) else p.get("quiz_options", "[]")
+            existing = db.execute("SELECT id FROM candidate_pages WHERE candidate_slug=? AND slug=?", (slug, page_slug)).fetchone()
+            if existing:
+                db.execute(
+                    "UPDATE candidate_pages SET theme=?, color=?, headline=?, text=?, "
+                    "tile_title=?, tile_subtitle=?, poll_id=?, poll_question=?, poll_options=?, "
+                    "quiz_id=?, quiz_intro=?, quiz_question=?, quiz_options=?, quiz_correct=?, quiz_explain=?, sort_order=? "
+                    "WHERE candidate_slug=? AND slug=?",
+                    (p.get("theme",""), p.get("color","#1E6FB9"), p.get("headline",""), p.get("text",""),
+                     p.get("tile_title",""), p.get("tile_subtitle",""),
+                     p.get("poll_id",""), p.get("poll_question",""), poll_opts,
+                     p.get("quiz_id",""), p.get("quiz_intro",""), p.get("quiz_question",""),
+                     quiz_opts, p.get("quiz_correct",""), p.get("quiz_explain",""), p.get("sort_order", 0),
+                     slug, page_slug),
+                )
+            else:
+                db.execute(
+                    "INSERT INTO candidate_pages (candidate_slug, slug, theme, color, headline, text, "
+                    "tile_title, tile_subtitle, poll_id, poll_question, poll_options, "
+                    "quiz_id, quiz_intro, quiz_question, quiz_options, quiz_correct, quiz_explain, sort_order) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (slug, page_slug, p.get("theme",""), p.get("color","#1E6FB9"),
+                     p.get("headline",""), p.get("text",""),
+                     p.get("tile_title",""), p.get("tile_subtitle",""),
+                     p.get("poll_id",""), p.get("poll_question",""), poll_opts,
+                     p.get("quiz_id",""), p.get("quiz_intro",""), p.get("quiz_question",""),
+                     quiz_opts, p.get("quiz_correct",""), p.get("quiz_explain",""), p.get("sort_order", 0)),
+                )
+            imported["pages"] += 1
+
+        # Upsert links
+        for l in links_data:
+            url = l.get("url", "")
+            if not url:
+                continue
+            exists = db.execute("SELECT id FROM candidate_links WHERE candidate_slug=? AND url=?", (slug, url)).fetchone()
+            if not exists:
+                db.execute(
+                    "INSERT INTO candidate_links (candidate_slug, label, url, sort_order) VALUES (?,?,?,?)",
+                    (slug, l.get("label", ""), url, l.get("sort_order", 0)),
+                )
+                imported["links"] += 1
+        db.commit()
+    finally:
+        db.close()
+    return {"ok": True, "imported": imported}
 
 
 @app.get("/api/platform/candidates/export")

@@ -2,6 +2,14 @@
 
 Alle relevanten Änderungen an diesem Projekt werden hier dokumentiert.
 
+## [3.3.0] – 2026-02-14
+
+### Hinzugefügt
+
+- **Einzelexport pro Kandidat:** ⬇-Button in der Kandidatentabelle exportiert einen einzelnen Kandidaten als JSON (Profil, Seiten, Links, Analytics)
+- **Einzelimport pro Kandidat:** ⬆-Button importiert JSON-Daten direkt für einen bestimmten Kandidaten (Profil-Update, Seiten/Links Upsert)
+- Neue API-Endpoints: `GET /api/platform/candidates/{slug}/export` und `POST /api/platform/candidates/{slug}/import`
+
 ## [3.2.0] – 2026-02-14
 
 ### Hinzugefügt

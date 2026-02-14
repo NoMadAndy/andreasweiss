@@ -97,6 +97,10 @@ td .mini{font-size:.72rem;color:#8e8e93;display:block;margin-top:.1rem}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
 .btn-danger{padding:.3rem .6rem;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;cursor:pointer;font-size:.72rem;font-weight:600;font-family:inherit;transition:all .15s}
 .btn-danger:hover{background:#dc2626;color:#fff}
+.btn-sm{padding:.25rem .5rem;background:#f0f2f5;color:#3a3a3c;border:1px solid #d0d0d0;border-radius:6px;cursor:pointer;font-size:.78rem;font-family:inherit;transition:all .15s;line-height:1}
+.btn-sm:hover{background:#e0e2e5;border-color:#b0b0b0}
+.btn-sm-import{background:#f0fdf4;color:#16a34a;border-color:#86efac}
+.btn-sm-import:hover{background:#16a34a;color:#fff}
 @media(max-width:700px){.stats-grid{grid-template-columns:repeat(2,1fr)}.two-col{grid-template-columns:1fr}}
 </style>
 </head>
@@ -393,8 +397,12 @@ function renderCandidates(candidates){
       '<td style="text-align:right">'+num(c.quiz)+'</td>'+
       '<td style="text-align:right">'+num(c.feedback)+'</td>'+
       '<td style="text-align:right">'+c.pages+'</td>'+
-      '<td style="white-space:nowrap"><a href="/'+esc(c.slug)+'/admin/" class="btn-link" style="font-size:.78rem">Admin \u2192</a> '+
-      '<button class="btn-danger" onclick="deleteCandidate(\''+esc(c.slug)+'\',\''+esc(c.name)+'\')">L\u00f6schen</button></td>'+
+      '<td style="white-space:nowrap">'+
+      '<a href="/'+esc(c.slug)+'/admin/" class="btn-link" style="font-size:.78rem">Admin \u2192</a> '+
+      '<button class="btn-sm" onclick="exportSingleCandidate(\''+esc(c.slug)+'\')" title="Exportieren">\u2b07</button> '+
+      '<button class="btn-sm btn-sm-import" onclick="importSingleCandidate(\''+esc(c.slug)+'\',\''+esc(c.name)+'\')" title="Importieren">\u2b06</button> '+
+      '<button class="btn-danger" onclick="deleteCandidate(\''+esc(c.slug)+'\',\''+esc(c.name)+'\')">L\u00f6schen</button>'+
+      '</td>'+
       '</tr>';
   }).join("");
 }
@@ -591,6 +599,40 @@ candImportInput.addEventListener('change',function(){
   reader.readAsText(file);
   candImportInput.value='';
 });
+
+// ── Export Single Candidate ──────────────────────────────────
+window.exportSingleCandidate=function(slug){
+  fetch('/api/platform/candidates/'+encodeURIComponent(slug)+'/export',{headers:{'Authorization':auth}})
+  .then(function(r){if(!r.ok)throw new Error();return r.blob()})
+  .then(function(blob){
+    var u=URL.createObjectURL(blob);var a=document.createElement('a');
+    a.href=u;a.download=slug+'_export.json';a.click();URL.revokeObjectURL(u);
+  }).catch(function(){alert('Export fehlgeschlagen')});
+};
+
+// ── Import Single Candidate ─────────────────────────────────
+window.importSingleCandidate=function(slug,name){
+  var inp=document.createElement('input');
+  inp.type='file';inp.accept='.json';
+  inp.onchange=function(){
+    if(!inp.files.length)return;
+    var file=inp.files[0];
+    if(!file.name.endsWith('.json')){alert('Nur .json Dateien erlaubt');return}
+    if(!confirm('Daten f\u00fcr \u201e'+name+'\u201c aus '+file.name+' importieren?\nProfil, Seiten und Links werden aktualisiert.'))return;
+    var fd=new FormData();fd.append('file',file);
+    fetch('/api/platform/candidates/'+encodeURIComponent(slug)+'/import',{
+      method:'POST',headers:{'Authorization':auth},body:fd
+    }).then(function(r){if(!r.ok)return r.json().then(function(d){throw new Error(d.detail)});return r.json()})
+    .then(function(d){
+      var t='\u2705 Import f\u00fcr '+name+': ';
+      if(d.imported.profile)t+='Profil aktualisiert, ';
+      t+=d.imported.pages+' Seiten, '+d.imported.links+' neue Links';
+      alert(t);
+      apiFetch('/platform/stats').then(renderStats).catch(function(){});
+    }).catch(function(err){alert('\u274c '+err.message)});
+  };
+  inp.click();
+};
 
 // ── Helpers ─────────────────────────────────────────────────
 function fmtB(b){if(b<1024)return b+" B";if(b<1048576)return(b/1024).toFixed(1)+" KB";return(b/1048576).toFixed(1)+" MB"}
