@@ -12,8 +12,11 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Optional
 
+import shutil
+import tempfile
+
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, UploadFile, File
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
@@ -787,6 +790,88 @@ async def admin_export(
         iter([output.getvalue()]),
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={type}_{slug}_export.csv"},
+    )
+
+
+# ── Full Exports ──────────────────────────────────────────────────
+
+@app.get("/api/{slug}/admin/export/candidate.json")
+async def export_candidate_json(
+    slug: str,
+    _admin: str = Depends(verify_admin),
+):
+    """Export all candidate data (profile, pages, links, analytics) as JSON."""
+    candidate = _require_candidate(slug)
+    pages = get_candidate_pages(slug)
+    links = get_candidate_links(slug)
+    db = get_db()
+    try:
+        visits = [dict(r) for r in db.execute(
+            "SELECT ts, page, city, region, country, user_agent_short, ref FROM visits WHERE candidate_slug=? ORDER BY ts DESC",
+            (slug,),
+        ).fetchall()]
+        polls = [dict(r) for r in db.execute(
+            "SELECT ts, page, poll_id, option, city, region, country FROM poll_votes WHERE candidate_slug=? ORDER BY ts DESC",
+            (slug,),
+        ).fetchall()]
+        quizzes = [dict(r) for r in db.execute(
+            "SELECT ts, page, quiz_id, option, is_correct, city, region, country FROM quiz_answers WHERE candidate_slug=? ORDER BY ts DESC",
+            (slug,),
+        ).fetchall()]
+        feedbacks = [dict(r) for r in db.execute(
+            "SELECT ts, page, message, city, region, country FROM feedback WHERE candidate_slug=? ORDER BY ts DESC",
+            (slug,),
+        ).fetchall()]
+    finally:
+        db.close()
+
+    safe = {k: v for k, v in candidate.items() if k not in ("admin_user", "admin_pass")}
+    payload = {
+        "export_date": datetime.now().isoformat(),
+        "version": VERSION,
+        "candidate": safe,
+        "pages": pages,
+        "links": links,
+        "analytics": {
+            "visits": visits,
+            "poll_votes": polls,
+            "quiz_answers": quizzes,
+            "feedback": feedbacks,
+        },
+    }
+    content = json.dumps(payload, ensure_ascii=False, indent=2)
+    return StreamingResponse(
+        iter([content]),
+        media_type="application/json",
+        headers={"Content-Disposition": f"attachment; filename={slug}_export.json"},
+    )
+
+
+@app.get("/api/{slug}/admin/export/db")
+async def export_database(
+    slug: str,
+    _admin: str = Depends(verify_admin),
+):
+    """Download a snapshot of the entire SQLite database."""
+    _require_candidate(slug)
+    from db import DB_PATH as _db_path
+    if not os.path.exists(_db_path):
+        raise HTTPException(404, "Datenbank nicht gefunden")
+    # Create a safe copy (WAL checkpoint) to avoid partial reads
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
+    tmp.close()
+    src = get_db()
+    try:
+        dst = __import__("sqlite3").connect(tmp.name)
+        src.backup(dst)
+        dst.close()
+    finally:
+        src.close()
+    return FileResponse(
+        tmp.name,
+        media_type="application/x-sqlite3",
+        filename="wahl2026_backup.db",
+        background=None,
     )
 
 

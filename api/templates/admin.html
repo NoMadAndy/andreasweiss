@@ -181,7 +181,7 @@ tbody tr:hover{background:#fafbfc}
     <section class="panel"><div class="panel-header"><h2>🗳️ Umfragen</h2><span class="badge" id="polls-badge"></span></div><div id="polls-content"></div></section>
     <section class="panel"><div class="panel-header"><h2>❓ Quiz</h2><span class="badge" id="quiz-badge"></span></div><div id="quiz-content"></div></section>
     <section class="panel"><div class="panel-header"><h2>💬 Rückmeldungen</h2><span class="badge" id="fb-badge"></span></div><div id="feedback-content"></div></section>
-    <section class="panel"><div class="panel-header"><h2>📥 Daten exportieren</h2></div><div class="exports-row"><button class="export-btn primary" onclick="doExportAll()">📦 Alles</button><button class="export-btn" onclick="doExport('visits')">👁 Besuche</button><button class="export-btn" onclick="doExport('poll')">🗳 Umfragen</button><button class="export-btn" onclick="doExport('quiz')">❓ Quiz</button><button class="export-btn" onclick="doExport('feedback')">💬 Feedback</button></div></section>
+    <section class="panel"><div class="panel-header"><h2>📥 Daten exportieren</h2></div><div class="exports-row"><button class="export-btn primary" onclick="doExportAll()">📦 Alles (CSV)</button><button class="export-btn" onclick="doExport('visits')">👁 Besuche</button><button class="export-btn" onclick="doExport('poll')">🗳 Umfragen</button><button class="export-btn" onclick="doExport('quiz')">❓ Quiz</button><button class="export-btn" onclick="doExport('feedback')">💬 Feedback</button></div><hr style="margin:1rem 0;border:none;border-top:1px solid #e5e5e5"><div class="exports-row"><button class="export-btn primary" onclick="doExportCandidate()" style="background:linear-gradient(135deg,#16a34a,#15803d)">📋 Kandidat als JSON</button><button class="export-btn primary" onclick="doExportDB()" style="background:linear-gradient(135deg,#7c3aed,#6d28d9)">🗄️ Gesamte Datenbank</button></div></section>
   </div>
 
   <!-- ═══ TAB: Inhalte ═══ -->
@@ -432,6 +432,18 @@ window.doExport=function(type){
   .catch(function(){alert("Export fehlgeschlagen")});
 };
 window.doExportAll=function(){["visits","poll","quiz","feedback"].forEach(function(t,i){setTimeout(function(){doExport(t)},i*400)})};
+window.doExportCandidate=function(){
+  fetch(API+"/admin/export/candidate.json",{headers:{"Authorization":auth}})
+  .then(function(r){if(!r.ok)throw new Error();return r.blob()})
+  .then(function(blob){var u=URL.createObjectURL(blob);var a=document.createElement("a");a.href=u;a.download=SLUG+"_export.json";a.click();URL.revokeObjectURL(u)})
+  .catch(function(){alert("Export fehlgeschlagen")});
+};
+window.doExportDB=function(){
+  fetch(API+"/admin/export/db",{headers:{"Authorization":auth}})
+  .then(function(r){if(!r.ok)throw new Error();return r.blob()})
+  .then(function(blob){var u=URL.createObjectURL(blob);var a=document.createElement("a");a.href=u;a.download="wahl2026_backup.db";a.click();URL.revokeObjectURL(u)})
+  .catch(function(){alert("Export fehlgeschlagen")});
+};
 
 // ── Content Loading & Editing ───────────────────────────────
 function loadContent(){
