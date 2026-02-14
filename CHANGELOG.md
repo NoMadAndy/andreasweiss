@@ -2,6 +2,22 @@
 
 Alle relevanten Änderungen an diesem Projekt werden hier dokumentiert.
 
+## [2.2.0] – 2026-02-14
+
+### Hinzugefügt
+
+- **Plattform-Admin:** Eigene Admin-Seite unter `/admin/` mit kumulierten Statistiken über alle Kandidaten
+- **Kandidaten-Übersicht:** Tabelle mit Einzelstatistiken (Besuche, Umfragen, Quiz, Feedback, Seiten) pro Kandidat
+- **Plattform-Auth:** Separate Authentifizierung via `ADMIN_USER`/`ADMIN_PASS` Umgebungsvariablen
+- **DB-Import:** SQLite-Datei-Upload auf Plattform-Admin (mit Validierung und automatischem Backup)
+- **Kandidaten-Import:** JSON-Import pro Kandidat – Profil (Update), Seiten (Upsert), Links (ohne Duplikate), Analytik (Append)
+- **Import-UI:** Drag & Drop JSON-Import im Kandidaten-Admin Dashboard
+
+### Geändert
+
+- **DB-Export:** Von Kandidaten-Admin auf Plattform-Admin verschoben
+- **Admin-UI:** Export-Sektion umbenannt in „Daten exportieren / importieren"
+
 ## [2.1.0] – 2026-02-14
 
 ### Hinzugefügt
