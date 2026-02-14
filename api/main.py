@@ -34,6 +34,7 @@ UPLOAD_BASE = os.environ.get("UPLOAD_BASE", "/data/uploads")
 # ── App ───────────────────────────────────────────────────────────
 app = FastAPI(title="Wahl2026 Platform", docs_url=None, redoc_url=None)
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+templates.env.globals["VERSION"] = VERSION
 
 
 @app.on_event("startup")
