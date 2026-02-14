@@ -1,6 +1,6 @@
 """FastAPI backend – Multi-tenant Wahlplattform."""
 
-VERSION = "3.5.0"
+VERSION = "3.6.0"
 
 import csv
 import hashlib
@@ -455,6 +455,110 @@ async def platform_analytics_reset(_admin: str = Depends(verify_platform_admin))
         for table in ANALYTICS_TABLES:
             count = db.execute(f"SELECT COUNT(*) c FROM {table}").fetchone()["c"]
             db.execute(f"DELETE FROM {table}")
+            counts[table] = count
+        db.commit()
+    finally:
+        db.close()
+    return {"ok": True, "deleted": counts}
+
+
+# ── Per-Candidate Analytics Export / Import / Reset ───────────
+
+@app.get("/api/platform/candidates/{slug}/analytics/export")
+async def platform_candidate_analytics_export(
+    slug: str, _admin: str = Depends(verify_platform_admin),
+):
+    """Export analytics for a single candidate."""
+    candidate = get_candidate(slug)
+    if not candidate:
+        raise HTTPException(404, "Kandidat nicht gefunden")
+    db = get_db()
+    try:
+        result: dict = {
+            "export_date": datetime.now().isoformat(),
+            "version": VERSION,
+            "candidate_slug": slug,
+            "candidate_name": candidate["name"],
+        }
+        for table in ANALYTICS_TABLES:
+            rows = db.execute(
+                f"SELECT * FROM {table} WHERE candidate_slug = ?", (slug,)
+            ).fetchall()
+            result[table] = [dict(r) for r in rows]
+    finally:
+        db.close()
+    content = json.dumps(result, ensure_ascii=False, indent=2)
+    return Response(
+        content=content,
+        media_type="application/json",
+        headers={
+            "Content-Disposition": f'attachment; filename="{slug}_analytics.json"'
+        },
+    )
+
+
+@app.post("/api/platform/candidates/{slug}/analytics/import")
+async def platform_candidate_analytics_import(
+    slug: str,
+    file: UploadFile = File(...),
+    _admin: str = Depends(verify_platform_admin),
+):
+    """Import analytics for a single candidate (appends rows, sets candidate_slug)."""
+    candidate = get_candidate(slug)
+    if not candidate:
+        raise HTTPException(404, "Kandidat nicht gefunden")
+    if not file.filename.endswith(".json"):
+        raise HTTPException(400, "Nur .json Dateien erlaubt")
+    raw = await file.read()
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        raise HTTPException(400, "Ungültige JSON-Datei")
+
+    db = get_db()
+    counts: dict = {}
+    try:
+        for table in ANALYTICS_TABLES:
+            rows = data.get(table, [])
+            if not rows:
+                counts[table] = 0
+                continue
+            cols_info = db.execute(f"PRAGMA table_info({table})").fetchall()
+            all_cols = [c["name"] for c in cols_info if c["name"] != "id"]
+            inserted = 0
+            for row in rows:
+                vals = {c: row.get(c, "") for c in all_cols}
+                vals["candidate_slug"] = slug  # force correct slug
+                placeholders = ", ".join(["?"] * len(vals))
+                col_names = ", ".join(vals.keys())
+                db.execute(
+                    f"INSERT INTO {table} ({col_names}) VALUES ({placeholders})",
+                    list(vals.values()),
+                )
+                inserted += 1
+            counts[table] = inserted
+        db.commit()
+    finally:
+        db.close()
+    return {"ok": True, "imported": counts}
+
+
+@app.delete("/api/platform/candidates/{slug}/analytics")
+async def platform_candidate_analytics_reset(
+    slug: str, _admin: str = Depends(verify_platform_admin),
+):
+    """Delete analytics data for a single candidate."""
+    candidate = get_candidate(slug)
+    if not candidate:
+        raise HTTPException(404, "Kandidat nicht gefunden")
+    db = get_db()
+    counts: dict = {}
+    try:
+        for table in ANALYTICS_TABLES:
+            count = db.execute(
+                f"SELECT COUNT(*) c FROM {table} WHERE candidate_slug = ?", (slug,)
+            ).fetchone()["c"]
+            db.execute(f"DELETE FROM {table} WHERE candidate_slug = ?", (slug,))
             counts[table] = count
         db.commit()
     finally:

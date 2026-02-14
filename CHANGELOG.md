@@ -2,6 +2,16 @@
 
 Alle relevanten Änderungen an diesem Projekt werden hier dokumentiert.
 
+## [3.6.0] – 2026-02-14
+
+### Hinzugefügt
+
+- **Statistik pro Kandidat:** 📊-Dropdown-Menü in der Kandidatentabelle mit drei Aktionen:
+  - Statistik exportieren (JSON mit Besuchen, Umfragen, Quiz, Rückmeldungen für diesen Kandidaten)
+  - Statistik importieren (JSON-Datei, Daten werden hinzugefügt)
+  - Statistik zurücksetzen (alle Analysedaten dieses Kandidaten löschen)
+- Neue API-Endpoints: `GET/POST /api/platform/candidates/{slug}/analytics/export|import`, `DELETE .../analytics`
+
 ## [3.5.0] – 2026-02-14
 
 ### Hinzugefügt
