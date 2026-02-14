@@ -2,6 +2,12 @@
 
 Alle relevanten Änderungen an diesem Projekt werden hier dokumentiert.
 
+## [3.6.1] – 2026-02-14
+
+### Geändert
+
+- Kandidatenname in der Plattform-Admin-Tabelle ist jetzt anklickbar und führt direkt zur Kandidatenseite
+
 ## [3.6.0] – 2026-02-14
 
 ### Hinzugefügt
