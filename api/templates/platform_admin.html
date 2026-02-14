@@ -26,33 +26,45 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 .controls{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
 .btn-link{color:#7c3aed;text-decoration:none;font-size:.9rem;font-weight:500}
 .btn-link:hover{text-decoration:underline}
+/* Tabs */
+.tab-bar{display:flex;gap:.25rem;border-bottom:2px solid #e0e0e0;margin-bottom:1.5rem;overflow-x:auto}
+.tab-btn{padding:.65rem 1.1rem;background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;font-size:.88rem;font-weight:600;color:#6e6e73;white-space:nowrap;font-family:inherit;transition:color .15s,border-color .15s}
+.tab-btn.active{color:#7c3aed;border-bottom-color:#7c3aed}
+.tab-btn:hover{color:#1d1d1f}
+.tab-panel{display:none}.tab-panel.active{display:block}
+/* Stats */
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem;margin-bottom:1.5rem}
 .stat-card{background:#fff;padding:1.25rem;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.05);text-align:center;border-top:3px solid var(--sc,#7c3aed)}
 .stat-card:nth-child(1){--sc:#7c3aed}.stat-card:nth-child(2){--sc:#1E6FB9}.stat-card:nth-child(3){--sc:#D97706}.stat-card:nth-child(4){--sc:#16a34a}.stat-card:nth-child(5){--sc:#B91C1C}.stat-card:nth-child(6){--sc:#0891b2}
 .stat-value{display:block;font-size:2.2rem;font-weight:800;color:var(--sc,#7c3aed);line-height:1.2}
 .stat-label{display:block;font-size:.78rem;color:#6e6e73;margin-top:.35rem;text-transform:uppercase;letter-spacing:.04em;font-weight:500}
+/* Panels */
 .panel{background:#fff;border-radius:14px;padding:1.5rem;box-shadow:0 1px 4px rgba(0,0,0,.05);margin-bottom:1rem}
 .panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem}
 .panel-header h2{font-size:1.15rem;font-weight:700}
 .badge{background:#f0f2f5;padding:.2rem .65rem;border-radius:6px;font-size:.75rem;color:#6e6e73;font-weight:600}
+/* Table */
 table{width:100%;border-collapse:collapse}
 th,td{padding:.6rem .75rem;text-align:left;border-bottom:1px solid #f0f0f2;font-size:.88rem}
 th{font-weight:600;color:#8e8e93;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em}
 tbody tr:hover{background:#fafbfc}
 td .mini{font-size:.72rem;color:#8e8e93;display:block;margin-top:.1rem}
+/* Charts */
 .bar-row{margin-bottom:.75rem}
 .bar-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.3rem}
 .bar-label{font-size:.84rem;color:#3a3a3c;line-height:1.3}
 .bar-value{font-size:.8rem;color:#6e6e73;white-space:nowrap;font-weight:500}
 .bar-track{width:100%;height:22px;background:#f0f2f5;border-radius:6px;overflow:hidden}
 .bar-fill{height:100%;border-radius:6px;transition:width .5s;min-width:2px;background:var(--bar-color,#7c3aed)}
-.exports-row{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+/* Buttons & Forms */
 .export-btn{padding:.55rem 1.1rem;background:#fff;border:1.5px solid #e0e0e0;border-radius:10px;cursor:pointer;font-size:.82rem;font-weight:500;transition:all .15s;display:inline-flex;align-items:center;gap:.4rem;font-family:inherit}
 .export-btn:hover{background:#f5f5f7;border-color:#c0c0c0}
 .export-btn.primary{background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border-color:transparent}
 .export-btn.primary:hover{opacity:.92}
 .export-btn.green{background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border-color:transparent}
 .export-btn.green:hover{opacity:.92}
+.exports-row{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+/* Upload */
 .upload-card{background:#fafbfc;border-radius:12px;padding:1.25rem;border:1.5px dashed #d0d0d0;text-align:center;transition:border-color .2s;max-width:400px}
 .upload-card:hover{border-color:#7c3aed;background:#f5f3ff}
 .upload-card.dragover{border-color:#7c3aed;background:#ede9fe}
@@ -65,7 +77,25 @@ td .mini{font-size:.72rem;color:#8e8e93;display:block;margin-top:.1rem}
 .upload-status.ok{color:#16a34a}.upload-status.err{color:#dc2626}
 .candidate-color{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:.4rem;vertical-align:middle}
 .empty{color:#8e8e93;font-size:.88rem;font-style:italic;padding:.5rem 0}
-@media(max-width:700px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+/* Settings Form */
+.settings-form .fg{margin-bottom:1rem}
+.settings-form label{display:block;font-size:.82rem;font-weight:600;margin-bottom:.3rem;color:#3a3a3c}
+.settings-form input,.settings-form textarea{display:block;width:100%;padding:.7rem .9rem;border:1.5px solid #e0e0e0;border-radius:8px;font-size:.92rem;font-family:inherit;transition:border-color .2s}
+.settings-form input:focus,.settings-form textarea:focus{outline:none;border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.1)}
+.settings-form textarea{min-height:60px;resize:vertical}
+.save-btn{padding:.65rem 1.5rem;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;border-radius:10px;font-size:.92rem;cursor:pointer;font-weight:600;font-family:inherit}
+.save-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(124,58,237,.25)}
+.save-btn:disabled{opacity:.6;cursor:default;transform:none}
+.form-msg{font-size:.82rem;margin-top:.5rem;min-height:1.2em}
+.form-msg.ok{color:#16a34a}.form-msg.err{color:#dc2626}
+/* Register */
+.register-form .fg{margin-bottom:.85rem}
+.register-form label{display:block;font-size:.82rem;font-weight:600;margin-bottom:.3rem;color:#3a3a3c}
+.register-form input{display:block;width:100%;padding:.7rem .9rem;border:1.5px solid #e0e0e0;border-radius:8px;font-size:.92rem;font-family:inherit;transition:border-color .2s}
+.register-form input:focus{outline:none;border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.1)}
+.register-form .hint{font-size:.72rem;color:#8e8e93;margin-top:.2rem}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+@media(max-width:700px){.stats-grid{grid-template-columns:repeat(2,1fr)}.two-col{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -92,68 +122,155 @@ td .mini{font-size:.72rem;color:#8e8e93;display:block;margin-top:.1rem}
     </div>
   </div>
 
-  <!-- Stats Grid -->
-  <div class="stats-grid">
-    <div class="stat-card"><span class="stat-value" id="sv-candidates">–</span><span class="stat-label">Kandidaten</span></div>
-    <div class="stat-card"><span class="stat-value" id="sv-visits">–</span><span class="stat-label">Besuche gesamt</span></div>
-    <div class="stat-card"><span class="stat-value" id="sv-unique">–</span><span class="stat-label">Unique heute</span></div>
-    <div class="stat-card"><span class="stat-value" id="sv-polls">–</span><span class="stat-label">Umfrage-Stimmen</span></div>
-    <div class="stat-card"><span class="stat-value" id="sv-quiz">–</span><span class="stat-label">Quiz-Antworten</span></div>
-    <div class="stat-card"><span class="stat-value" id="sv-feedback">–</span><span class="stat-label">Rückmeldungen</span></div>
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="stats">📊 Statistiken</button>
+    <button class="tab-btn" data-tab="candidates">👥 Kandidaten</button>
+    <button class="tab-btn" data-tab="settings">⚙️ Startseite</button>
+    <button class="tab-btn" data-tab="data">🗄️ Daten</button>
   </div>
 
-  <!-- Daily Chart -->
-  <section class="panel">
-    <div class="panel-header"><h2>📈 Besuche pro Tag (alle Kandidaten)</h2><span class="badge" id="daily-avg"></span></div>
-    <div id="daily-chart"></div>
-  </section>
-
-  <!-- Candidates Table -->
-  <section class="panel">
-    <div class="panel-header"><h2>👥 Kandidaten</h2><span class="badge" id="cand-badge"></span></div>
-    <div style="overflow-x:auto">
-      <table id="tbl-candidates">
-        <thead><tr><th>Kandidat</th><th style="text-align:right">Besuche</th><th style="text-align:right">Umfragen</th><th style="text-align:right">Quiz</th><th style="text-align:right">Feedback</th><th style="text-align:right">Seiten</th><th></th></tr></thead>
-        <tbody></tbody>
-      </table>
+  <!-- ═══ Tab: Stats ═══ -->
+  <div class="tab-panel active" id="tab-stats">
+    <div class="stats-grid">
+      <div class="stat-card"><span class="stat-value" id="sv-candidates">–</span><span class="stat-label">Kandidaten</span></div>
+      <div class="stat-card"><span class="stat-value" id="sv-visits">–</span><span class="stat-label">Besuche gesamt</span></div>
+      <div class="stat-card"><span class="stat-value" id="sv-unique">–</span><span class="stat-label">Unique heute</span></div>
+      <div class="stat-card"><span class="stat-value" id="sv-polls">–</span><span class="stat-label">Umfrage-Stimmen</span></div>
+      <div class="stat-card"><span class="stat-value" id="sv-quiz">–</span><span class="stat-label">Quiz-Antworten</span></div>
+      <div class="stat-card"><span class="stat-value" id="sv-feedback">–</span><span class="stat-label">Rückmeldungen</span></div>
     </div>
-  </section>
+    <section class="panel">
+      <div class="panel-header"><h2>📈 Besuche pro Tag</h2><span class="badge" id="daily-avg"></span></div>
+      <div id="daily-chart"></div>
+    </section>
+  </div>
 
-  <!-- DB Export / Import -->
-  <section class="panel">
-    <div class="panel-header"><h2>🗄️ Datenbank</h2></div>
-    <div style="display:flex;gap:1.5rem;flex-wrap:wrap;align-items:flex-start">
-      <div>
-        <h3 style="font-size:.9rem;margin-bottom:.5rem">Export</h3>
-        <div class="exports-row">
-          <button class="export-btn primary" id="btn-export-db">🗄️ Datenbank herunterladen</button>
+  <!-- ═══ Tab: Candidates ═══ -->
+  <div class="tab-panel" id="tab-candidates">
+    <!-- Register new candidate -->
+    <section class="panel">
+      <div class="panel-header"><h2>➕ Neuen Kandidaten anlegen</h2></div>
+      <div class="register-form">
+        <div class="two-col">
+          <div>
+            <div class="fg">
+              <label for="reg-name">Name</label>
+              <input type="text" id="reg-name" placeholder="Max Mustermann">
+            </div>
+            <div class="fg">
+              <label for="reg-slug">URL-Kürzel</label>
+              <input type="text" id="reg-slug" placeholder="maxmustermann" pattern="[a-z0-9\-]+" maxlength="40">
+              <p class="hint">Kleinbuchstaben, Zahlen, Bindestriche. Wird Teil der URL.</p>
+            </div>
+          </div>
+          <div>
+            <div class="fg">
+              <label for="reg-user">Admin-Benutzername</label>
+              <input type="text" id="reg-user" placeholder="admin" autocomplete="off">
+            </div>
+            <div class="fg">
+              <label for="reg-pass">Admin-Passwort</label>
+              <input type="password" id="reg-pass" placeholder="Mind. 6 Zeichen" autocomplete="off">
+            </div>
+          </div>
+        </div>
+        <button class="save-btn" id="register-btn">Kandidat erstellen</button>
+        <div class="form-msg" id="reg-msg"></div>
+      </div>
+    </section>
+
+    <!-- Candidates table -->
+    <section class="panel">
+      <div class="panel-header"><h2>👥 Kandidaten</h2><span class="badge" id="cand-badge"></span></div>
+      <div style="overflow-x:auto">
+        <table id="tbl-candidates">
+          <thead><tr><th>Kandidat</th><th style="text-align:right">Besuche</th><th style="text-align:right">Umfragen</th><th style="text-align:right">Quiz</th><th style="text-align:right">Feedback</th><th style="text-align:right">Seiten</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- ═══ Tab: Settings ═══ -->
+  <div class="tab-panel" id="tab-settings">
+    <section class="panel">
+      <div class="panel-header"><h2>⚙️ Startseite konfigurieren</h2></div>
+      <div class="settings-form" id="settings-form">
+        <div class="two-col">
+          <div>
+            <div class="fg">
+              <label for="s-site-title">Seitentitel</label>
+              <input type="text" id="s-site-title" placeholder="Kommunalwahl 2026">
+            </div>
+            <div class="fg">
+              <label for="s-site-subtitle">Untertitel / Slogan</label>
+              <input type="text" id="s-site-subtitle" placeholder="Gemeinsam für unsere Gemeinde">
+            </div>
+            <div class="fg">
+              <label for="s-hero-headline">Hero-Überschrift</label>
+              <input type="text" id="s-hero-headline" placeholder="Kommunalwahl 2026">
+            </div>
+            <div class="fg">
+              <label for="s-hero-text">Hero-Text</label>
+              <textarea id="s-hero-text" placeholder="Lernen Sie unsere Kandidaten kennen…"></textarea>
+            </div>
+          </div>
+          <div>
+            <div class="fg">
+              <label for="s-campaign-title">Kampagne – Titel</label>
+              <input type="text" id="s-campaign-title" placeholder="Leer lassen um Banner auszublenden">
+            </div>
+            <div class="fg">
+              <label for="s-campaign-text">Kampagne – Text</label>
+              <textarea id="s-campaign-text" placeholder="Optionaler Beschreibungstext"></textarea>
+            </div>
+            <div class="fg">
+              <label for="s-footer-text">Footer-Text</label>
+              <input type="text" id="s-footer-text" placeholder="Wahl 2026 · macherwerkstatt.cc">
+            </div>
+          </div>
+        </div>
+        <button class="save-btn" id="save-settings-btn">Speichern</button>
+        <div class="form-msg" id="settings-msg"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ═══ Tab: Data ═══ -->
+  <div class="tab-panel" id="tab-data">
+    <section class="panel">
+      <div class="panel-header"><h2>🗄️ Datenbank</h2></div>
+      <div style="display:flex;gap:1.5rem;flex-wrap:wrap;align-items:flex-start">
+        <div>
+          <h3 style="font-size:.9rem;margin-bottom:.5rem">Export</h3>
+          <div class="exports-row">
+            <button class="export-btn primary" id="btn-export-db">🗄️ Datenbank herunterladen</button>
+          </div>
+        </div>
+        <div>
+          <h3 style="font-size:.9rem;margin-bottom:.5rem">Import</h3>
+          <div class="upload-card" id="uc-db-import">
+            <h3>Datenbank importieren</h3>
+            <p>SQLite .db · Ersetzt die gesamte Datenbank</p>
+            <input type="file" accept=".db" class="upload-input" id="file-db-import">
+            <label for="file-db-import" class="upload-label">📥 Datei wählen</label>
+            <div class="upload-status" id="status-db-import"></div>
+          </div>
         </div>
       </div>
-      <div>
-        <h3 style="font-size:.9rem;margin-bottom:.5rem">Import</h3>
-        <div class="upload-card" id="uc-db-import">
-          <h3>Datenbank importieren</h3>
-          <p>SQLite .db Datei · Ersetzt die gesamte Datenbank</p>
-          <input type="file" accept=".db" class="upload-input" id="file-db-import">
-          <label for="file-db-import" class="upload-label">📥 Datei wählen</label>
-          <div class="upload-status" id="status-db-import"></div>
-        </div>
+    </section>
+    <section class="panel">
+      <div class="panel-header"><h2>🌍 GeoIP Datenbank</h2></div>
+      <div class="upload-card" id="uc-geoip" style="max-width:400px">
+        <h3>GeoLite2-City Datenbank</h3>
+        <p>GeoLite2-City.mmdb · max. 150 MB · gilt für alle Kandidaten</p>
+        <input type="file" accept=".mmdb" class="upload-input" id="file-geoip">
+        <label for="file-geoip" class="upload-label">🌍 Datei wählen</label>
+        <div class="upload-status" id="status-geoip"></div>
       </div>
-    </div>
-  </section>
-
-  <!-- GeoIP Upload -->
-  <section class="panel">
-    <div class="panel-header"><h2>🌍 GeoIP Datenbank</h2></div>
-    <div class="upload-card" id="uc-geoip" style="max-width:400px">
-      <div class="preview-ph">🌍</div>
-      <h3>GeoLite2-City Datenbank</h3>
-      <p>GeoLite2-City.mmdb · max. 150 MB · gilt für alle Kandidaten</p>
-      <input type="file" accept=".mmdb" class="upload-input" id="file-geoip">
-      <label for="file-geoip" class="upload-label">🌍 Datei wählen</label>
-      <div class="upload-status" id="status-geoip"></div>
-    </div>
-  </section>
+    </section>
+  </div>
 </div>
 
 <script>
@@ -161,6 +278,18 @@ td .mini{font-size:.72rem;color:#8e8e93;display:block;margin-top:.1rem}
 "use strict";
 var auth="";
 var STORE_KEY="wahl_platform_admin";
+
+// ── Tabs ────────────────────────────────────────────────────
+document.querySelectorAll(".tab-btn").forEach(function(b){
+  b.addEventListener("click",function(){
+    document.querySelectorAll(".tab-btn").forEach(function(t){t.classList.remove("active")});
+    document.querySelectorAll(".tab-panel").forEach(function(p){p.classList.remove("active")});
+    b.classList.add("active");
+    document.getElementById("tab-"+b.dataset.tab).classList.add("active");
+    // Load settings when switching to that tab
+    if(b.dataset.tab==="settings") loadSettings();
+  });
+});
 
 // ── Login ───────────────────────────────────────────────────
 var loginBtn=document.getElementById("login-btn");
@@ -172,7 +301,7 @@ userInput.addEventListener("keydown",function(e){if(e.key==="Enter")passInput.fo
 
 var saved=localStorage.getItem(STORE_KEY);
 if(saved){auth=saved;apiFetch("/platform/stats").then(function(d){
-  show();renderStats(d);
+  showDash();renderStats(d);
 }).catch(function(){localStorage.removeItem(STORE_KEY);auth=""});}
 
 document.getElementById("logout-btn").addEventListener("click",function(e){
@@ -186,21 +315,21 @@ function doLogin(){
   var u=userInput.value,p=passInput.value;auth="Basic "+btoa(u+":"+p);
   loginBtn.textContent="Laden…";loginBtn.disabled=true;
   apiFetch("/platform/stats").then(function(d){
-    localStorage.setItem(STORE_KEY,auth);show();renderStats(d);
+    localStorage.setItem(STORE_KEY,auth);showDash();renderStats(d);
   }).catch(function(){
     document.getElementById("login-error").hidden=false;
     loginBtn.textContent="Anmelden";loginBtn.disabled=false;auth="";
   });
 }
 
-function show(){document.getElementById("login-view").hidden=true;document.getElementById("dashboard-view").hidden=false}
+function showDash(){document.getElementById("login-view").hidden=true;document.getElementById("dashboard-view").hidden=false}
 
 function apiFetch(url,opts){
   opts=opts||{};opts.headers=Object.assign({"Authorization":auth},opts.headers||{});
   return fetch("/api"+url,opts).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()});
 }
 
-// ── Stats Rendering ─────────────────────────────────────────
+// ── Stats ───────────────────────────────────────────────────
 function renderStats(d){
   document.getElementById("sv-candidates").textContent=num(d.candidate_count);
   document.getElementById("sv-visits").textContent=num(d.total_visits);
@@ -241,6 +370,91 @@ function renderCandidates(candidates){
   }).join("");
 }
 
+// ── Register ────────────────────────────────────────────────
+document.getElementById("reg-name").addEventListener("input",function(){
+  var slug=this.value.toLowerCase()
+    .replace(/[äÄ]/g,"ae").replace(/[öÖ]/g,"oe").replace(/[üÜ]/g,"ue").replace(/[ß]/g,"ss")
+    .replace(/[^a-z0-9]+/g,"").substring(0,40);
+  document.getElementById("reg-slug").value=slug;
+});
+
+var regBtn=document.getElementById("register-btn");
+var regMsg=document.getElementById("reg-msg");
+regBtn.addEventListener("click",function(){
+  var name=document.getElementById("reg-name").value.trim();
+  var slug=document.getElementById("reg-slug").value.trim();
+  var user=document.getElementById("reg-user").value.trim();
+  var pass=document.getElementById("reg-pass").value;
+  regMsg.textContent="";
+  if(!name||!slug||!user||!pass){fm(regMsg,"Bitte alle Felder ausfüllen.","err");return}
+  if(!/^[a-z0-9\-]+$/.test(slug)){fm(regMsg,"URL-Kürzel: nur Kleinbuchstaben, Zahlen, Bindestriche.","err");return}
+  if(pass.length<6){fm(regMsg,"Passwort mind. 6 Zeichen.","err");return}
+  regBtn.disabled=true;regBtn.textContent="Erstelle…";
+  fetch("/api/register",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","Authorization":auth},
+    body:JSON.stringify({name:name,slug:slug,admin_user:user,admin_pass:pass})
+  }).then(function(r){return r.json().then(function(d){return{ok:r.ok,data:d}})})
+  .then(function(res){
+    if(res.ok){
+      fm(regMsg,"✅ Kandidat „"+name+"" erstellt! → /"+slug+"/","ok");
+      document.getElementById("reg-name").value="";document.getElementById("reg-slug").value="";
+      document.getElementById("reg-user").value="";document.getElementById("reg-pass").value="";
+      // Reload candidates
+      apiFetch("/platform/stats").then(renderStats).catch(function(){});
+    } else {
+      fm(regMsg,res.data.detail||"Fehler","err");
+    }
+    regBtn.disabled=false;regBtn.textContent="Kandidat erstellen";
+  }).catch(function(){
+    fm(regMsg,"Netzwerkfehler","err");regBtn.disabled=false;regBtn.textContent="Kandidat erstellen";
+  });
+});
+
+// ── Settings ────────────────────────────────────────────────
+var settingsLoaded=false;
+function loadSettings(){
+  if(settingsLoaded)return;
+  apiFetch("/platform/settings").then(function(d){
+    settingsLoaded=true;
+    document.getElementById("s-site-title").value=d.site_title||"";
+    document.getElementById("s-site-subtitle").value=d.site_subtitle||"";
+    document.getElementById("s-hero-headline").value=d.hero_headline||"";
+    document.getElementById("s-hero-text").value=d.hero_text||"";
+    document.getElementById("s-campaign-title").value=d.campaign_title||"";
+    document.getElementById("s-campaign-text").value=d.campaign_text||"";
+    document.getElementById("s-footer-text").value=d.footer_text||"";
+  }).catch(function(){});
+}
+
+var saveBtn=document.getElementById("save-settings-btn");
+var settingsMsg=document.getElementById("settings-msg");
+saveBtn.addEventListener("click",function(){
+  var payload={
+    site_title:document.getElementById("s-site-title").value,
+    site_subtitle:document.getElementById("s-site-subtitle").value,
+    hero_headline:document.getElementById("s-hero-headline").value,
+    hero_text:document.getElementById("s-hero-text").value,
+    campaign_title:document.getElementById("s-campaign-title").value,
+    campaign_text:document.getElementById("s-campaign-text").value,
+    footer_text:document.getElementById("s-footer-text").value,
+  };
+  saveBtn.disabled=true;saveBtn.textContent="Speichern…";settingsMsg.textContent="";
+  fetch("/api/platform/settings",{
+    method:"PUT",
+    headers:{"Content-Type":"application/json","Authorization":auth},
+    body:JSON.stringify(payload)
+  }).then(function(r){if(!r.ok)throw new Error();return r.json()})
+  .then(function(){
+    fm(settingsMsg,"✅ Gespeichert! Startseite aktualisiert.","ok");
+    saveBtn.disabled=false;saveBtn.textContent="Speichern";
+    settingsLoaded=false; // reload on next visit
+  }).catch(function(){
+    fm(settingsMsg,"❌ Fehler beim Speichern","err");
+    saveBtn.disabled=false;saveBtn.textContent="Speichern";
+  });
+});
+
 // ── DB Export ───────────────────────────────────────────────
 document.getElementById("btn-export-db").addEventListener("click",function(){
   fetch("/api/platform/export/db",{headers:{"Authorization":auth}})
@@ -253,7 +467,6 @@ document.getElementById("btn-export-db").addEventListener("click",function(){
 var dbInput=document.getElementById("file-db-import");
 var dbStatus=document.getElementById("status-db-import");
 var dbCard=document.getElementById("uc-db-import");
-
 dbInput.addEventListener("change",function(){if(dbInput.files.length)doImportDB(dbInput.files[0])});
 dbCard.addEventListener("dragover",function(e){e.preventDefault();dbCard.classList.add("dragover")});
 dbCard.addEventListener("dragleave",function(){dbCard.classList.remove("dragover")});
@@ -261,24 +474,20 @@ dbCard.addEventListener("drop",function(e){e.preventDefault();dbCard.classList.r
 
 function doImportDB(file){
   if(!file.name.endsWith(".db")){dbStatus.className="upload-status err";dbStatus.textContent="❌ Nur .db Dateien erlaubt";return}
-  if(!confirm("⚠️ ACHTUNG: Die gesamte Datenbank wird ersetzt!\n\nDiese Aktion kann nicht rückgängig gemacht werden.\n\nFortfahren?")){return}
+  if(!confirm("⚠️ Die gesamte Datenbank wird ersetzt! Fortfahren?")){return}
   dbStatus.className="upload-status";dbStatus.textContent="Hochladen… ("+fmtB(file.size)+")";
   var fd=new FormData();fd.append("file",file);
   fetch("/api/platform/import/db",{method:"POST",headers:{"Authorization":auth},body:fd})
   .then(function(r){if(!r.ok)return r.json().then(function(d){throw new Error(d.detail||"Fehler")});return r.json()})
   .then(function(d){
     dbStatus.className="upload-status ok";
-    dbStatus.textContent="✅ Import erfolgreich ("+d.tables.length+" Tabellen, "+fmtB(d.size)+")";
-    // Reload stats
+    dbStatus.textContent="✅ Import OK ("+d.tables.length+" Tabellen, "+fmtB(d.size)+")";
     apiFetch("/platform/stats").then(renderStats).catch(function(){});
   })
   .catch(function(err){dbStatus.className="upload-status err";dbStatus.textContent="❌ "+err.message});
 }
 
-function fmtB(b){if(b<1024)return b+" B";if(b<1048576)return(b/1024).toFixed(1)+" KB";return(b/1048576).toFixed(1)+" MB"}
-function esc(s){var d=document.createElement("div");d.textContent=String(s);return d.innerHTML}
-
-// ── GeoIP Upload ────────────────────────────────────────────
+// ── GeoIP ───────────────────────────────────────────────────
 var geoInput=document.getElementById("file-geoip");
 var geoStatus=document.getElementById("status-geoip");
 var geoCard=document.getElementById("uc-geoip");
@@ -287,7 +496,7 @@ geoCard.addEventListener("dragover",function(e){e.preventDefault();geoCard.class
 geoCard.addEventListener("dragleave",function(){geoCard.classList.remove("dragover")});
 geoCard.addEventListener("drop",function(e){e.preventDefault();geoCard.classList.remove("dragover");if(e.dataTransfer.files.length)doUploadGeoip(e.dataTransfer.files[0])});
 function doUploadGeoip(file){
-  if(!file.name.endsWith(".mmdb")){geoStatus.className="upload-status err";geoStatus.textContent="❌ Nur .mmdb Dateien erlaubt";return}
+  if(!file.name.endsWith(".mmdb")){geoStatus.className="upload-status err";geoStatus.textContent="❌ Nur .mmdb";return}
   geoStatus.className="upload-status";geoStatus.textContent="Hochladen… ("+fmtB(file.size)+")";
   var fd=new FormData();fd.append("file",file);
   fetch("/api/platform/upload/geoip",{method:"POST",headers:{"Authorization":auth},body:fd})
@@ -295,6 +504,11 @@ function doUploadGeoip(file){
   .then(function(d){geoStatus.className="upload-status ok";geoStatus.textContent="✅ "+d.file+" ("+fmtB(d.size)+")"+(d.loaded?" · geladen":" · nicht geladen")})
   .catch(function(err){geoStatus.className="upload-status err";geoStatus.textContent="❌ "+err.message});
 }
+
+// ── Helpers ─────────────────────────────────────────────────
+function fmtB(b){if(b<1024)return b+" B";if(b<1048576)return(b/1024).toFixed(1)+" KB";return(b/1048576).toFixed(1)+" MB"}
+function esc(s){var d=document.createElement("div");d.textContent=String(s);return d.innerHTML}
+function fm(el,text,cls){el.textContent=text;el.className="form-msg "+cls}
 })();
 </script>
 </body>

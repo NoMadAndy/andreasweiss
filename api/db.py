@@ -146,11 +146,59 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_fb_cand       ON feedback(candidate_slug);
         CREATE INDEX IF NOT EXISTS idx_fb_page       ON feedback(page);
         CREATE INDEX IF NOT EXISTS idx_fb_ts         ON feedback(ts);
+
+        -- ── Platform Settings ───────────────────────────────────
+        CREATE TABLE IF NOT EXISTS platform_settings (
+            key   TEXT PRIMARY KEY,
+            value TEXT NOT NULL DEFAULT ''
+        );
     """)
+    # Seed default platform settings if empty
+    existing = conn.execute("SELECT COUNT(*) c FROM platform_settings").fetchone()[0]
+    if existing == 0:
+        defaults = {
+            "site_title": "Kommunalwahl 2026",
+            "site_subtitle": "Gemeinsam für unsere Gemeinde",
+            "hero_headline": "Kommunalwahl 2026",
+            "hero_text": "Lernen Sie unsere Kandidaten kennen – mit Umfragen, Quiz und Bürgerbeteiligung.",
+            "campaign_title": "",
+            "campaign_text": "",
+            "footer_text": "Wahl 2026 · macherwerkstatt.cc",
+        }
+        conn.executemany(
+            "INSERT INTO platform_settings (key, value) VALUES (?, ?)",
+            defaults.items(),
+        )
+        conn.commit()
     conn.close()
 
 
 # ── Helpers ────────────────────────────────────────────────────────
+def get_platform_settings() -> dict:
+    """Return all platform settings as a dict."""
+    db = get_db()
+    try:
+        rows = db.execute("SELECT key, value FROM platform_settings").fetchall()
+        return {r["key"]: r["value"] for r in rows}
+    finally:
+        db.close()
+
+
+def set_platform_settings(settings: dict):
+    """Upsert platform settings from a dict."""
+    db = get_db()
+    try:
+        for k, v in settings.items():
+            db.execute(
+                "INSERT INTO platform_settings (key, value) VALUES (?, ?) "
+                "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                (k, v),
+            )
+        db.commit()
+    finally:
+        db.close()
+
+
 def get_candidate(slug: str) -> dict | None:
     """Return candidate row as dict, or None."""
     db = get_db()

@@ -2,6 +2,21 @@
 
 Alle relevanten Änderungen an diesem Projekt werden hier dokumentiert.
 
+## [3.0.0] – 2026-02-14
+
+### Hinzugefügt
+
+- **Konfigurierbare Startseite:** Headline, Slogan, Kampagnen-Banner und Footer-Text können vom Plattform-Admin über den neuen Tab „⚙️ Startseite“ konfiguriert werden
+- **Platform-Settings API:** `GET /api/platform/settings` und `PUT /api/platform/settings` für serverseitiges Rendering der Startseite
+- **Neue DB-Tabelle `platform_settings`:** Key-Value-Store mit sinnvollen Standardwerten
+- **Plattform-Admin mit Tabs:** Statistiken, Kandidaten, Startseite, Daten – übersichtlich organisiert
+
+### Geändert
+
+- **Startseite öffentlich:** `/` ist jetzt für alle Besucher zugänglich (kein Login erforderlich), zeigt Kandidaten mit Portrait und Partei-Logo
+- **Registrierung in Admin verschoben:** Neue Kandidaten werden jetzt über den Plattform-Admin („👥 Kandidaten“-Tab) angelegt, nicht mehr auf der Startseite
+- Admin-Link im Footer der Startseite für schnellen Zugang
+
 ## [2.5.0] – 2026-02-14
 
 ### Hinzugefügt
