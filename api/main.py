@@ -1,6 +1,6 @@
 """FastAPI backend – Multi-tenant Wahl2026 platform."""
 
-VERSION = "2.4.1"
+VERSION = "2.4.2"
 
 import csv
 import hashlib
@@ -505,8 +505,11 @@ async def register(data: RegisterData):
         if existing:
             raise HTTPException(409, "Dieses Kürzel ist bereits vergeben")
         db.execute(
-            "INSERT INTO candidates (slug, name, admin_user, admin_pass) VALUES (?,?,?,?)",
-            (data.slug, data.name, data.admin_user, data.admin_pass),
+            "INSERT INTO candidates (slug, name, admin_user, admin_pass, impressum_html, datenschutz_html) "
+            "VALUES (?,?,?,?,?,?)",
+            (data.slug, data.name, data.admin_user, data.admin_pass,
+             DEFAULT_IMPRESSUM.replace("[Name]", data.name),
+             DEFAULT_DATENSCHUTZ.replace("[Name]", data.name)),
         )
         db.commit()
     finally:
