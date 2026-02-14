@@ -1,13 +1,15 @@
 /**
- * Andreas Weiss – Frontend Logic
- * Visit tracking, Poll voting, Quiz answering
- * No dependencies, no cookies, localStorage for duplicate prevention.
+ * Wahl 2026 – Frontend Logic (multi-tenant)
+ * Reads slug from body[data-slug]. No cookies, localStorage for duplicate prevention.
  */
 (function () {
   "use strict";
 
-  var BASE = "/andreasweiss";
-  var API = BASE + "/api";
+  var SLUG = document.body.dataset.slug || "";
+  if (!SLUG) return; // landing page – no tracking
+
+  var BASE = "/" + SLUG;
+  var API = "/api/" + SLUG;
 
   // Current page slug from URL
   var path = window.location.pathname.replace(BASE, "").replace(/^\/|\/$/g, "");
@@ -48,9 +50,8 @@
     var page = section.dataset.page;
     var buttons = section.querySelectorAll(".option-btn");
     var resultsDiv = section.querySelector(".results");
-    var storageKey = "poll_" + pollId;
+    var storageKey = "poll_" + SLUG + "_" + pollId;
 
-    // Already voted?
     if (localStorage.getItem(storageKey)) {
       disableButtons(buttons, localStorage.getItem(storageKey));
       loadPollResults(pollId, resultsDiv, buttons);
@@ -103,7 +104,6 @@
     var total = data.total || 0;
     var html = "";
 
-    // Show bars in button order
     buttons.forEach(function (btn) {
       var option = btn.dataset.option;
       var info = results[option] || { count: 0, percent: 0 };
@@ -129,9 +129,8 @@
     var page = section.dataset.page;
     var buttons = section.querySelectorAll(".option-btn");
     var feedback = section.querySelector(".quiz-feedback");
-    var storageKey = "quiz_" + quizId;
+    var storageKey = "quiz_" + SLUG + "_" + quizId;
 
-    // Already answered?
     var saved = localStorage.getItem(storageKey);
     if (saved) {
       try {

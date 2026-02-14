@@ -116,6 +116,22 @@ tbody tr:hover{background:#fafbfc}
 
 /* Page dot */
 .page-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:.5rem;vertical-align:middle}
+
+/* Uploads */
+.upload-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem}
+.upload-card{background:#fafbfc;border-radius:12px;padding:1.25rem;border:1.5px dashed #d0d0d0;text-align:center;transition:border-color .2s,background .2s}
+.upload-card:hover{border-color:#1e6fb9;background:#f5f8fc}
+.upload-card.dragover{border-color:#1e6fb9;background:#e8f0fe}
+.upload-card h3{font-size:.95rem;margin-bottom:.25rem}
+.upload-card p{font-size:.78rem;color:#8e8e93;margin-bottom:.75rem}
+.upload-card .preview{width:80px;height:80px;border-radius:10px;object-fit:cover;margin:0 auto .75rem;display:block;background:#f0f2f5}
+.upload-card .preview-ph{width:80px;height:80px;border-radius:10px;margin:0 auto .75rem;display:flex;align-items:center;justify-content:center;background:#f0f2f5;font-size:2rem;color:#c0c0c0}
+.upload-input{display:none}
+.upload-label{display:inline-block;padding:.55rem 1.2rem;background:linear-gradient(135deg,#1e6fb9,#1a5fa0);color:#fff;border-radius:10px;cursor:pointer;font-size:.82rem;font-weight:600;transition:transform .1s,opacity .15s}
+.upload-label:hover{transform:translateY(-1px);opacity:.92}
+.upload-status{font-size:.78rem;margin-top:.5rem;min-height:1.2em;color:#6e6e73}
+.upload-status.ok{color:#16a34a}
+.upload-status.err{color:#dc2626}
 </style>
 </head>
 <body>
@@ -222,6 +238,39 @@ tbody tr:hover{background:#fafbfc}
       <button class="export-btn" onclick="doExport('poll')"><span class="export-icon">🗳</span> Umfragen</button>
       <button class="export-btn" onclick="doExport('quiz')"><span class="export-icon">❓</span> Quiz</button>
       <button class="export-btn" onclick="doExport('feedback')"><span class="export-icon">💬</span> Rückmeldungen</button>
+    </div>
+  </section>
+
+  <!-- Uploads -->
+  <section class="panel">
+    <div class="panel-header"><h2>📤 Dateien hochladen</h2></div>
+    <div class="upload-grid">
+      <div class="upload-card" id="uc-portrait">
+        <img src="/andreasweiss/assets/img/portrait.jpg" class="preview" id="prev-portrait" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="preview-ph" style="display:none">👤</div>
+        <h3>Portrait</h3>
+        <p>JPG, PNG oder WebP · max. 5 MB</p>
+        <input type="file" accept="image/jpeg,image/png,image/webp" class="upload-input" id="file-portrait">
+        <label for="file-portrait" class="upload-label">📷 Bild wählen</label>
+        <div class="upload-status" id="status-portrait"></div>
+      </div>
+      <div class="upload-card" id="uc-logo">
+        <img src="/andreasweiss/assets/img/spd-logo.svg" class="preview" id="prev-logo" style="object-fit:contain" onerror="this.src='/andreasweiss/assets/img/spd-logo.png';this.onerror=function(){this.style.display='none';this.nextElementSibling.style.display='flex'}">
+        <div class="preview-ph" style="display:none">🏷️</div>
+        <h3>Partei-Logo</h3>
+        <p>SVG, PNG, JPG oder WebP · max. 5 MB</p>
+        <input type="file" accept="image/svg+xml,image/png,image/jpeg,image/webp" class="upload-input" id="file-logo">
+        <label for="file-logo" class="upload-label">🏷️ Logo wählen</label>
+        <div class="upload-status" id="status-logo"></div>
+      </div>
+      <div class="upload-card" id="uc-geoip">
+        <div class="preview-ph">🌍</div>
+        <h3>GeoIP Datenbank</h3>
+        <p>GeoLite2-City.mmdb · max. 150 MB</p>
+        <input type="file" accept=".mmdb" class="upload-input" id="file-geoip">
+        <label for="file-geoip" class="upload-label">🌍 Datei wählen</label>
+        <div class="upload-status" id="status-geoip"></div>
+      </div>
     </div>
   </section>
 </div>
@@ -497,6 +546,69 @@ function esc(s){
   d.textContent=String(s);
   return d.innerHTML;
 }
+
+// ── Uploads ────────────────────────────────────────────────
+function setupUpload(inputId, endpoint, statusId, previewId){
+  var input=document.getElementById(inputId);
+  var statusEl=document.getElementById(statusId);
+  var card=input.closest(".upload-card");
+
+  input.addEventListener("change",function(){
+    if(!input.files.length)return;
+    doUpload(input.files[0],endpoint,statusEl,previewId);
+  });
+
+  // Drag & drop
+  card.addEventListener("dragover",function(e){e.preventDefault();card.classList.add("dragover")});
+  card.addEventListener("dragleave",function(){card.classList.remove("dragover")});
+  card.addEventListener("drop",function(e){
+    e.preventDefault();
+    card.classList.remove("dragover");
+    if(e.dataTransfer.files.length){
+      doUpload(e.dataTransfer.files[0],endpoint,statusEl,previewId);
+    }
+  });
+}
+
+function doUpload(file,endpoint,statusEl,previewId){
+  statusEl.className="upload-status";
+  statusEl.textContent="Hochladen… ("+formatBytes(file.size)+")";
+  var fd=new FormData();
+  fd.append("file",file);
+  fetch(API+endpoint,{
+    method:"POST",
+    headers:{"Authorization":auth},
+    body:fd
+  }).then(function(r){
+    if(!r.ok)return r.json().then(function(d){throw new Error(d.detail||"Fehler")});
+    return r.json();
+  }).then(function(d){
+    statusEl.className="upload-status ok";
+    statusEl.textContent="✅ "+d.file+" hochgeladen ("+formatBytes(d.size)+")";
+    if(previewId){
+      var prev=document.getElementById(previewId);
+      if(prev){
+        prev.src=prev.src.split("?")[0]+"?t="+Date.now();
+        prev.style.display="block";
+        var ph=prev.nextElementSibling;
+        if(ph&&ph.classList.contains("preview-ph"))ph.style.display="none";
+      }
+    }
+  }).catch(function(err){
+    statusEl.className="upload-status err";
+    statusEl.textContent="❌ "+err.message;
+  });
+}
+
+function formatBytes(b){
+  if(b<1024)return b+" B";
+  if(b<1048576)return(b/1024).toFixed(1)+" KB";
+  return(b/1048576).toFixed(1)+" MB";
+}
+
+setupUpload("file-portrait","/admin/upload/portrait","status-portrait","prev-portrait");
+setupUpload("file-logo","/admin/upload/logo","status-logo","prev-logo");
+setupUpload("file-geoip","/admin/upload/geoip","status-geoip",null);
 })();
 </script>
 </body>

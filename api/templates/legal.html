@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }} – {{ candidate.name }}{% endblock %}
+
+{% block header %}
+<header class="site-header">
+    <div class="container">
+        <a href="/{{ candidate.slug }}/" class="back-link">← Zurück</a>
+        <span class="site-tagline">{{ candidate.tagline or candidate.name }}</span>
+    </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<section class="legal-content">
+    {{ content_html | safe }}
+</section>
+{% endblock %}

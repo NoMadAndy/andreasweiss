@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin – {{ candidate.name }}</title>
+<link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
+<meta name="theme-color" content="{{ candidate.theme_color or '#1E6FB9' }}">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f0f2f5;color:#1d1d1f;min-height:100vh}
+#login-view{display:flex;align-items:center;justify-content:center;min-height:100vh}
+.login-card{background:#fff;padding:2.5rem;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.08);width:100%;max-width:380px}
+.login-card h1{font-size:1.6rem;margin-bottom:.15rem;font-weight:700}
+.login-card p.sub{color:#6e6e73;font-size:.85rem;margin-bottom:1.5rem}
+.login-card input{display:block;width:100%;padding:.85rem 1rem;border:1.5px solid #e0e0e0;border-radius:10px;font-size:1rem;margin-bottom:.75rem;transition:border-color .2s}
+.login-card input:focus{outline:none;border-color:#1e6fb9;box-shadow:0 0 0 3px rgba(30,111,185,.12)}
+.login-card button{display:block;width:100%;padding:.85rem;background:linear-gradient(135deg,#1e6fb9,#1a5fa0);color:#fff;border:none;border-radius:10px;font-size:1rem;cursor:pointer;font-weight:600}
+.login-card button:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(30,111,185,.25)}
+.error{color:#dc2626;font-size:.85rem;margin-top:.5rem;text-align:center}
+#dashboard-view{max-width:1060px;margin:0 auto;padding:1.5rem 1rem 3rem}
+[hidden]{display:none!important}
+.dash-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem}
+.dash-header h1{font-size:1.6rem;font-weight:700}
+.dash-header .sub{color:#6e6e73;font-size:.85rem;margin-top:.15rem}
+.controls{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
+.controls select{padding:.5rem .85rem;border:1.5px solid #e0e0e0;border-radius:10px;font-size:.9rem;background:#fff;cursor:pointer}
+.controls select:focus{outline:none;border-color:#1e6fb9}
+.btn-link{color:#1e6fb9;text-decoration:none;font-size:.9rem;font-weight:500}
+.btn-link:hover{text-decoration:underline}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:.75rem;margin-bottom:1.5rem}
+.stat-card{background:#fff;padding:1.25rem;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.05);text-align:center;border-top:3px solid var(--sc,#1e6fb9)}
+.stat-card:nth-child(1){--sc:#1E6FB9}.stat-card:nth-child(2){--sc:#6A3FB5}.stat-card:nth-child(3){--sc:#D97706}.stat-card:nth-child(4){--sc:#16a34a}.stat-card:nth-child(5){--sc:#B91C1C}
+.stat-value{display:block;font-size:2.2rem;font-weight:800;color:var(--sc,#1e6fb9);line-height:1.2}
+.stat-label{display:block;font-size:.78rem;color:#6e6e73;margin-top:.35rem;text-transform:uppercase;letter-spacing:.04em;font-weight:500}
+.panel{background:#fff;border-radius:14px;padding:1.5rem;box-shadow:0 1px 4px rgba(0,0,0,.05);margin-bottom:1rem}
+.panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem}
+.panel-header h2{font-size:1.15rem;font-weight:700}
+.badge{background:#f0f2f5;padding:.2rem .65rem;border-radius:6px;font-size:.75rem;color:#6e6e73;font-weight:600}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media(max-width:700px){.two-col{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse}
+th,td{padding:.6rem .75rem;text-align:left;border-bottom:1px solid #f0f0f2;font-size:.88rem}
+th{font-weight:600;color:#8e8e93;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em}
+tbody tr:hover{background:#fafbfc}
+.bar-row{margin-bottom:.75rem}
+.bar-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.3rem}
+.bar-label{font-size:.84rem;color:#3a3a3c;line-height:1.3}
+.bar-value{font-size:.8rem;color:#6e6e73;white-space:nowrap;font-weight:500}
+.bar-track{width:100%;height:22px;background:#f0f2f5;border-radius:6px;overflow:hidden}
+.bar-fill{height:100%;border-radius:6px;transition:width .5s;min-width:2px;background:var(--bar-color,#1e6fb9)}
+.bar-fill.correct{background:#16a34a!important}
+.bar-row.correct .bar-label{color:#16a34a;font-weight:700}
+.bar-row.winner .bar-fill{box-shadow:0 0 0 2px rgba(30,111,185,.25)}
+
+/* Main tabs */
+.main-tabs{display:flex;gap:.4rem;margin-bottom:1.5rem;border-bottom:2px solid #e0e0e0;padding-bottom:0}
+.main-tab{padding:.7rem 1.2rem;background:none;border:none;font-size:.95rem;cursor:pointer;font-weight:500;color:#6e6e73;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s;font-family:inherit}
+.main-tab:hover{color:#1d1d1f}
+.main-tab.active{color:#1e6fb9;border-bottom-color:#1e6fb9;font-weight:700}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+.tabs{display:flex;gap:.4rem;margin-bottom:.75rem}
+.tab{padding:.4rem .85rem;border:1.5px solid #e0e0e0;border-radius:8px;background:#fff;font-size:.8rem;cursor:pointer;font-weight:500;transition:all .15s}
+.tab:hover{background:#f5f5f7}
+.tab.active{background:#1e6fb9;color:#fff;border-color:#1e6fb9}
+.topic-card{background:#fafbfc;border-radius:12px;padding:1.25rem;margin-bottom:1rem;border-left:4px solid var(--tc,#1e6fb9)}
+.topic-card h3{font-size:1rem;font-weight:700;margin-bottom:.15rem;color:var(--tc,#1e6fb9)}
+.topic-question{font-size:.88rem;color:#6e6e73;margin-bottom:.75rem}
+.topic-stats{display:flex;gap:1.25rem;margin-bottom:.85rem;flex-wrap:wrap}
+.topic-stat{font-size:.78rem;color:#8e8e93}
+.topic-stat strong{font-size:1.1rem;color:#1d1d1f;display:block;font-weight:700}
+.fb-card{background:#fafbfc;border-radius:10px;padding:1rem 1.25rem;margin-bottom:.6rem;border-left:3px solid #D97706}
+.fb-meta{display:flex;gap:.75rem;font-size:.75rem;color:#8e8e93;margin-bottom:.4rem;flex-wrap:wrap}
+.fb-page-tag{display:inline-block;background:#e8f0fe;color:#1e6fb9;padding:.15rem .55rem;border-radius:4px;font-size:.72rem;font-weight:600}
+.fb-text{font-size:.9rem;line-height:1.5;color:#3a3a3c}
+.exports-row{display:flex;flex-wrap:wrap;gap:.5rem}
+.export-btn{padding:.55rem 1.1rem;background:#fff;border:1.5px solid #e0e0e0;border-radius:10px;cursor:pointer;font-size:.82rem;font-weight:500;transition:all .15s;display:inline-flex;align-items:center;gap:.4rem;font-family:inherit}
+.export-btn:hover{background:#f5f5f7;border-color:#c0c0c0}
+.export-btn.primary{background:linear-gradient(135deg,#1e6fb9,#1a5fa0);color:#fff;border-color:transparent}
+.export-btn.primary:hover{opacity:.92}
+.empty{color:#8e8e93;font-size:.88rem;font-style:italic;padding:.5rem 0}
+.page-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:.5rem}
+.upload-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem}
+.upload-card{background:#fafbfc;border-radius:12px;padding:1.25rem;border:1.5px dashed #d0d0d0;text-align:center;transition:border-color .2s}
+.upload-card:hover{border-color:#1e6fb9;background:#f5f8fc}
+.upload-card.dragover{border-color:#1e6fb9;background:#e8f0fe}
+.upload-card h3{font-size:.95rem;margin-bottom:.25rem}
+.upload-card p{font-size:.78rem;color:#8e8e93;margin-bottom:.75rem}
+.upload-card .preview{width:80px;height:80px;border-radius:10px;object-fit:cover;margin:0 auto .75rem;display:block;background:#f0f2f5}
+.upload-card .preview-ph{width:80px;height:80px;border-radius:10px;margin:0 auto .75rem;display:flex;align-items:center;justify-content:center;background:#f0f2f5;font-size:2rem;color:#c0c0c0}
+.upload-input{display:none}
+.upload-label{display:inline-block;padding:.55rem 1.2rem;background:linear-gradient(135deg,#1e6fb9,#1a5fa0);color:#fff;border-radius:10px;cursor:pointer;font-size:.82rem;font-weight:600}
+.upload-label:hover{transform:translateY(-1px);opacity:.92}
+.upload-status{font-size:.78rem;margin-top:.5rem;min-height:1.2em;color:#6e6e73}
+.upload-status.ok{color:#16a34a}.upload-status.err{color:#dc2626}
+
+/* Content editing */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr}}
+.form-group{margin-bottom:1rem}
+.form-group label{display:block;font-size:.82rem;font-weight:600;margin-bottom:.3rem;color:#3a3a3c}
+.form-group input,.form-group textarea,.form-group select{display:block;width:100%;padding:.7rem .85rem;border:1.5px solid #e0e0e0;border-radius:8px;font-size:.9rem;font-family:inherit;background:#fff}
+.form-group input:focus,.form-group textarea:focus{outline:none;border-color:#1e6fb9}
+.form-group textarea{min-height:80px;resize:vertical}
+.form-group .hint{font-size:.72rem;color:#8e8e93;margin-top:.2rem}
+.form-group.full{grid-column:1/-1}
+.save-btn{padding:.7rem 1.5rem;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:10px;font-size:.9rem;cursor:pointer;font-weight:600;font-family:inherit}
+.save-btn:hover{transform:translateY(-1px)}
+.save-btn:disabled{opacity:.6}
+.save-msg{display:inline-block;margin-left:1rem;font-size:.85rem}
+.save-msg.ok{color:#16a34a}.save-msg.err{color:#dc2626}
+.add-btn{padding:.5rem 1rem;background:#1e6fb9;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.85rem;font-weight:600;font-family:inherit}
+.add-btn:hover{opacity:.9}
+.del-btn{padding:.4rem .8rem;background:#dc2626;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600;font-family:inherit}
+.del-btn:hover{opacity:.9}
+.page-edit-card{background:#fafbfc;border-radius:12px;padding:1.25rem;margin-bottom:1rem;border-left:4px solid var(--pc,#1e6fb9)}
+.page-edit-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;cursor:pointer}
+.page-edit-header h3{font-size:1rem;font-weight:700;color:var(--pc,#1e6fb9)}
+.page-edit-body{display:none}
+.page-edit-body.open{display:block}
+.link-row{display:flex;gap:.75rem;align-items:center;margin-bottom:.5rem;padding:.5rem .75rem;background:#fafbfc;border-radius:8px}
+.link-row .link-label{flex:1;font-weight:600;font-size:.9rem}
+.link-row .link-url{flex:2;font-size:.82rem;color:#6e6e73}
+</style>
+</head>
+<body>
+<div id="login-view">
+  <div class="login-card">
+    <h1>Admin</h1>
+    <p class="sub">{{ candidate.name }}</p>
+    <input type="text" id="user" placeholder="Benutzer" autocomplete="username" autofocus>
+    <input type="password" id="pass" placeholder="Passwort" autocomplete="current-password">
+    <button id="login-btn">Anmelden</button>
+    <p id="login-error" class="error" hidden>Ungültige Zugangsdaten</p>
+  </div>
+</div>
+
+<div id="dashboard-view" hidden>
+  <div class="dash-header">
+    <div>
+      <h1>📊 Dashboard</h1>
+      <p class="sub">{{ candidate.name }} · <span style="color:#aaa">v2.0.0</span></p>
+    </div>
+    <div class="controls">
+      <select id="period">
+        <option value="7">7 Tage</option>
+        <option value="30" selected>30 Tage</option>
+        <option value="90">90 Tage</option>
+        <option value="365">1 Jahr</option>
+      </select>
+      <a href="/{{ candidate.slug }}/" class="btn-link">← Zur Website</a>
+      <a href="/" class="btn-link">🏠 Plattform</a>
+      <a href="#" class="btn-link" id="logout-btn" style="color:#dc2626">Abmelden</a>
+    </div>
+  </div>
+
+  <!-- Main Tabs -->
+  <div class="main-tabs">
+    <button class="main-tab active" data-pane="stats">📈 Statistiken</button>
+    <button class="main-tab" data-pane="content">✏️ Inhalte</button>
+    <button class="main-tab" data-pane="pages">📄 Seiten</button>
+    <button class="main-tab" data-pane="links">🔗 Links</button>
+    <button class="main-tab" data-pane="files">📤 Dateien</button>
+  </div>
+
+  <!-- ═══ TAB: Statistiken ═══ -->
+  <div class="tab-pane active" id="pane-stats">
+    <div class="stats-grid">
+      <div class="stat-card"><span class="stat-value" id="sv-visits">–</span><span class="stat-label">Besuche gesamt</span></div>
+      <div class="stat-card"><span class="stat-value" id="sv-unique">–</span><span class="stat-label">Unique heute</span></div>
+      <div class="stat-card"><span class="stat-value" id="sv-polls">–</span><span class="stat-label">Umfrage-Stimmen</span></div>
+      <div class="stat-card"><span class="stat-value" id="sv-quiz">–</span><span class="stat-label">Quiz-Antworten</span></div>
+      <div class="stat-card"><span class="stat-value" id="sv-feedback">–</span><span class="stat-label">Rückmeldungen</span></div>
+    </div>
+    <section class="panel"><div class="panel-header"><h2>📈 Besuche pro Tag</h2><span class="badge" id="daily-avg"></span></div><div id="daily-chart"></div></section>
+    <div class="two-col">
+      <section class="panel"><div class="panel-header"><h2>📄 Seiten</h2></div><table id="tbl-pages"><thead><tr><th>Seite</th><th style="text-align:right">Aufrufe</th></tr></thead><tbody></tbody></table></section>
+      <section class="panel"><div class="panel-header"><h2>📍 Herkunft</h2></div><div class="tabs" id="geo-tabs"><button class="tab active" data-t="cities">Städte</button><button class="tab" data-t="regions">Regionen</button><button class="tab" data-t="countries">Länder</button></div><table id="tbl-geo"><thead><tr><th>Ort</th><th style="text-align:right">Aufrufe</th></tr></thead><tbody></tbody></table></section>
+    </div>
+    <section class="panel"><div class="panel-header"><h2>🗳️ Umfragen</h2><span class="badge" id="polls-badge"></span></div><div id="polls-content"></div></section>
+    <section class="panel"><div class="panel-header"><h2>❓ Quiz</h2><span class="badge" id="quiz-badge"></span></div><div id="quiz-content"></div></section>
+    <section class="panel"><div class="panel-header"><h2>💬 Rückmeldungen</h2><span class="badge" id="fb-badge"></span></div><div id="feedback-content"></div></section>
+    <section class="panel"><div class="panel-header"><h2>📥 Daten exportieren</h2></div><div class="exports-row"><button class="export-btn primary" onclick="doExportAll()">📦 Alles</button><button class="export-btn" onclick="doExport('visits')">👁 Besuche</button><button class="export-btn" onclick="doExport('poll')">🗳 Umfragen</button><button class="export-btn" onclick="doExport('quiz')">❓ Quiz</button><button class="export-btn" onclick="doExport('feedback')">💬 Feedback</button></div></section>
+  </div>
+
+  <!-- ═══ TAB: Inhalte ═══ -->
+  <div class="tab-pane" id="pane-content">
+    <section class="panel">
+      <div class="panel-header"><h2>✏️ Profil & Startseite</h2></div>
+      <div class="form-grid" id="profile-form">
+        <div class="form-group"><label>Name</label><input type="text" id="pf-name"></div>
+        <div class="form-group"><label>Partei / Liste</label><input type="text" id="pf-party"></div>
+        <div class="form-group"><label>Tagline</label><input type="text" id="pf-tagline" placeholder="z.B. Kommunalwahl Rohrbach"></div>
+        <div class="form-group"><label>Wahltag</label><input type="text" id="pf-election" placeholder="08.03.2026"></div>
+        <div class="form-group"><label>Theme-Farbe</label><input type="color" id="pf-color" style="height:42px;padding:.2rem"></div>
+        <div class="form-group"><label>Headline (Startseite)</label><input type="text" id="pf-headline"></div>
+        <div class="form-group full"><label>Einleitungstext</label><textarea id="pf-intro" rows="3"></textarea></div>
+        <div class="form-group full"><label>CTA-Banner Text</label><input type="text" id="pf-cta"></div>
+        <div class="form-group full"><label>CTA-Banner Untertitel</label><input type="text" id="pf-ctasub"></div>
+        <div class="form-group full"><label>Über-mich Titel</label><input type="text" id="pf-abtitle"></div>
+        <div class="form-group full"><label>Über-mich Text</label><textarea id="pf-abtext" rows="3"></textarea></div>
+        <div class="form-group full"><label>Über-mich Namenszeile</label><input type="text" id="pf-abname" placeholder="Max Mustermann · Kandidat"></div>
+      </div>
+      <button class="save-btn" id="save-profile">💾 Profil speichern</button>
+      <span class="save-msg" id="profile-msg"></span>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header"><h2>⚖️ Impressum</h2></div>
+      <div class="form-group"><label>Impressum (HTML)</label><textarea id="pf-impressum" rows="10" style="font-family:monospace;font-size:.82rem"></textarea><p class="hint">HTML erlaubt: &lt;h2&gt;, &lt;p&gt;, &lt;strong&gt;, etc.</p></div>
+      <button class="save-btn" id="save-legal">💾 Rechtliche Texte speichern</button>
+      <span class="save-msg" id="legal-msg"></span>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header"><h2>🔒 Datenschutz</h2></div>
+      <div class="form-group"><label>Datenschutz (HTML)</label><textarea id="pf-datenschutz" rows="10" style="font-family:monospace;font-size:.82rem"></textarea></div>
+      <button class="save-btn" id="save-legal2">💾 Datenschutz speichern</button>
+      <span class="save-msg" id="legal2-msg"></span>
+    </section>
+  </div>
+
+  <!-- ═══ TAB: Seiten ═══ -->
+  <div class="tab-pane" id="pane-pages">
+    <section class="panel">
+      <div class="panel-header"><h2>📄 Themen-Seiten verwalten</h2><button class="add-btn" id="add-page-btn">+ Neue Seite</button></div>
+      <div id="pages-editor"></div>
+    </section>
+  </div>
+
+  <!-- ═══ TAB: Links ═══ -->
+  <div class="tab-pane" id="pane-links">
+    <section class="panel">
+      <div class="panel-header"><h2>🔗 Externe Links</h2></div>
+      <div id="links-list"></div>
+      <div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap">
+        <input type="text" id="new-link-label" placeholder="Label (z.B. SPD Rohrbach)" style="flex:1;min-width:150px;padding:.55rem .75rem;border:1.5px solid #e0e0e0;border-radius:8px;font-size:.88rem">
+        <input type="url" id="new-link-url" placeholder="https://..." style="flex:2;min-width:200px;padding:.55rem .75rem;border:1.5px solid #e0e0e0;border-radius:8px;font-size:.88rem">
+        <button class="add-btn" id="add-link-btn">+ Link hinzufügen</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- ═══ TAB: Dateien ═══ -->
+  <div class="tab-pane" id="pane-files">
+    <section class="panel">
+      <div class="panel-header"><h2>📤 Dateien hochladen</h2></div>
+      <div class="upload-grid">
+        <div class="upload-card" id="uc-portrait">
+          <img src="/uploads/{{ candidate.slug }}/portrait.jpg" class="preview" id="prev-portrait" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <div class="preview-ph" style="display:none">👤</div>
+          <h3>Portrait</h3><p>JPG, PNG oder WebP · max. 5 MB</p>
+          <input type="file" accept="image/jpeg,image/png,image/webp" class="upload-input" id="file-portrait">
+          <label for="file-portrait" class="upload-label">📷 Bild wählen</label>
+          <div class="upload-status" id="status-portrait"></div>
+        </div>
+        <div class="upload-card" id="uc-logo">
+          <img src="/uploads/{{ candidate.slug }}/logo.svg" class="preview" id="prev-logo" style="object-fit:contain" onerror="this.src='/uploads/{{ candidate.slug }}/logo.png';this.onerror=function(){this.style.display='none';this.nextElementSibling.style.display='flex'}">
+          <div class="preview-ph" style="display:none">🏷️</div>
+          <h3>Partei-Logo</h3><p>SVG, PNG, JPG oder WebP · max. 5 MB</p>
+          <input type="file" accept="image/svg+xml,image/png,image/jpeg,image/webp" class="upload-input" id="file-logo">
+          <label for="file-logo" class="upload-label">🏷️ Logo wählen</label>
+          <div class="upload-status" id="status-logo"></div>
+        </div>
+        <div class="upload-card" id="uc-geoip">
+          <div class="preview-ph">🌍</div>
+          <h3>GeoIP Datenbank</h3><p>GeoLite2-City.mmdb · max. 150 MB</p>
+          <input type="file" accept=".mmdb" class="upload-input" id="file-geoip">
+          <label for="file-geoip" class="upload-label">🌍 Datei wählen</label>
+          <div class="upload-status" id="status-geoip"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var SLUG="{{ candidate.slug }}";
+var API="/api/"+SLUG;
+var auth="";
+var geoData={};
+var contentData=null;
+
+// ── Main Tab Switching ──────────────────────────────────────
+document.querySelector(".main-tabs").addEventListener("click",function(e){
+  var t=e.target.closest(".main-tab");if(!t)return;
+  document.querySelectorAll(".main-tab").forEach(function(b){b.classList.remove("active")});
+  document.querySelectorAll(".tab-pane").forEach(function(p){p.classList.remove("active")});
+  t.classList.add("active");
+  document.getElementById("pane-"+t.dataset.pane).classList.add("active");
+  if(t.dataset.pane==="content"||t.dataset.pane==="pages"||t.dataset.pane==="links"){loadContent()}
+});
+
+// ── Login ───────────────────────────────────────────────────
+var loginBtn=document.getElementById("login-btn");
+var passInput=document.getElementById("pass");
+var userInput=document.getElementById("user");
+loginBtn.addEventListener("click",doLogin);
+passInput.addEventListener("keydown",function(e){if(e.key==="Enter")doLogin()});
+userInput.addEventListener("keydown",function(e){if(e.key==="Enter")passInput.focus()});
+
+var saved=localStorage.getItem("wahl_admin_"+SLUG);
+if(saved){auth=saved;apiFetch("/admin/stats?period=30").then(function(d){
+  document.getElementById("login-view").hidden=true;
+  document.getElementById("dashboard-view").hidden=false;renderStats(d);
+}).catch(function(){localStorage.removeItem("wahl_admin_"+SLUG);auth=""});}
+
+document.getElementById("logout-btn").addEventListener("click",function(e){
+  e.preventDefault();localStorage.removeItem("wahl_admin_"+SLUG);auth="";
+  document.getElementById("dashboard-view").hidden=true;document.getElementById("login-view").hidden=false;
+  userInput.value="";passInput.value="";document.getElementById("login-error").hidden=true;
+  loginBtn.textContent="Anmelden";loginBtn.disabled=false;
+});
+
+function doLogin(){
+  var u=userInput.value,p=passInput.value;auth="Basic "+btoa(u+":"+p);
+  loginBtn.textContent="Laden…";loginBtn.disabled=true;
+  apiFetch("/admin/stats?period=30").then(function(d){
+    localStorage.setItem("wahl_admin_"+SLUG,auth);
+    document.getElementById("login-view").hidden=true;
+    document.getElementById("dashboard-view").hidden=false;renderStats(d);
+  }).catch(function(){
+    document.getElementById("login-error").hidden=false;
+    loginBtn.textContent="Anmelden";loginBtn.disabled=false;auth="";
+  });
+}
+
+function apiFetch(url,opts){
+  opts=opts||{};opts.headers=Object.assign({"Authorization":auth},opts.headers||{});
+  return fetch(API+url,opts).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()});
+}
+
+document.getElementById("period").addEventListener("change",function(){
+  if(!auth)return;apiFetch("/admin/stats?period="+this.value).then(renderStats).catch(function(){});
+});
+
+// ── Stats Rendering ─────────────────────────────────────────
+function renderStats(d){
+  geoData={cities:d.top_cities,regions:d.top_regions,countries:d.top_countries};
+  var tp=0,tq=0;for(var k in d.polls)tp+=d.polls[k].total;for(var k2 in d.quizzes)tq+=d.quizzes[k2].total;
+  document.getElementById("sv-visits").textContent=num(d.total_visits);
+  document.getElementById("sv-unique").textContent=num(d.unique_today);
+  document.getElementById("sv-polls").textContent=num(tp);
+  document.getElementById("sv-quiz").textContent=num(tq);
+  document.getElementById("sv-feedback").textContent=num(d.feedback_count);
+  document.getElementById("polls-badge").textContent=tp+" Stimmen";
+  document.getElementById("quiz-badge").textContent=tq+" Antworten";
+  document.getElementById("fb-badge").textContent=(d.feedback_count||0)+" gesamt";
+  renderDaily(d.daily);renderPages(d.per_page);renderGeo("cities");
+  renderPolls(d.polls,d.content_meta);renderQuizzes(d.quizzes,d.content_meta);renderFeedback(d.feedback);
+}
+
+function num(n){return(n||0).toLocaleString("de-DE")}
+
+function renderDaily(daily){
+  var c=document.getElementById("daily-chart"),avg=document.getElementById("daily-avg");
+  if(!daily||!daily.length){c.innerHTML='<p class="empty">Keine Daten</p>';avg.textContent="";return}
+  var max=Math.max.apply(null,daily.map(function(d){return d.total}));
+  var sum=daily.reduce(function(s,d){return s+d.total},0);
+  avg.textContent="Ø "+Math.round(sum/daily.length)+"/Tag";
+  c.innerHTML=daily.map(function(d){var pct=max?Math.round(d.total/max*100):0;var ds=d.day.length>5?d.day.substring(5):d.day;
+    return '<div class="bar-row"><div class="bar-top"><span class="bar-label">'+esc(ds)+'</span><span class="bar-value">'+d.total+' <span style="color:#aaa">('+d.uniq+' uniq)</span></span></div><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%"></div></div></div>';
+  }).join("");
+}
+
+function renderPages(pages){
+  var tb=document.querySelector("#tbl-pages tbody");
+  if(!pages||!pages.length){tb.innerHTML='<tr><td colspan="2" class="empty">Keine Daten</td></tr>';return}
+  var max=pages[0].cnt||1;
+  tb.innerHTML=pages.map(function(p){var pct=Math.round(p.cnt/max*100);
+    return '<tr><td><span class="page-dot" style="background:#1e6fb9"></span>'+esc(p.page)+'</td><td style="text-align:right">'+p.cnt+'</td></tr>';
+  }).join("");
+}
+
+document.getElementById("geo-tabs").addEventListener("click",function(e){
+  var t=e.target.closest(".tab");if(!t)return;
+  document.querySelectorAll("#geo-tabs .tab").forEach(function(b){b.classList.remove("active")});
+  t.classList.add("active");renderGeo(t.dataset.t);
+});
+function renderGeo(tab){
+  var rows=geoData[tab]||[];var tb=document.querySelector("#tbl-geo tbody");
+  var key=tab==="cities"?"city":tab==="regions"?"region":"country";
+  if(!rows.length){tb.innerHTML='<tr><td colspan="2" class="empty">Keine Daten</td></tr>';return}
+  tb.innerHTML=rows.map(function(r){return '<tr><td>'+esc(r[key])+'</td><td style="text-align:right">'+r.cnt+'</td></tr>'}).join("");
+}
+
+function renderPolls(polls,meta){
+  var el=document.getElementById("polls-content");var ids=Object.keys(polls);
+  if(!ids.length){el.innerHTML='<p class="empty">Noch keine Stimmen</p>';return}
+  var html="";ids.forEach(function(id){var d=polls[id],m=meta[id]||{},theme=m.theme||"",question=m.question||id;
+    var sorted=Object.entries(d.options).sort(function(a,b){return b[1]-a[1]});
+    var top=sorted.length?sorted[0]:"";
+    html+='<div class="topic-card"><h3>'+esc(theme)+'</h3><div class="topic-question">'+esc(question)+'</div>';
+    html+='<div class="topic-stats"><div class="topic-stat"><strong>'+d.total+'</strong>Stimmen</div></div>';
+    sorted.forEach(function(item,i){var pct=d.total?Math.round(item[1]/d.total*100):0;var cls=i===0?" winner":"";
+      html+='<div class="bar-row'+cls+'"><div class="bar-top"><span class="bar-label">'+esc(item[0])+'</span><span class="bar-value">'+pct+'% ('+item[1]+')</span></div><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%"></div></div></div>';
+    });html+='</div>';
+  });el.innerHTML=html;
+}
+
+function renderQuizzes(quizzes,meta){
+  var el=document.getElementById("quiz-content");var ids=Object.keys(quizzes);
+  if(!ids.length){el.innerHTML='<p class="empty">Noch keine Antworten</p>';return}
+  var html="";ids.forEach(function(id){var d=quizzes[id],m=meta[id]||{},theme=m.theme||"",question=m.question||id;
+    var rate=d.total?Math.round(d.correct/d.total*100):0;var rc=rate>=50?"#16a34a":"#dc2626";
+    html+='<div class="topic-card"><h3>'+esc(theme)+'</h3><div class="topic-question">'+esc(question)+'</div>';
+    html+='<div class="topic-stats"><div class="topic-stat"><strong>'+d.total+'</strong>Antworten</div><div class="topic-stat"><strong style="color:'+rc+'">'+rate+'%</strong>Richtig</div></div>';
+    var sorted=Object.entries(d.options).sort(function(a,b){return b[1].count-a[1].count});
+    sorted.forEach(function(item){var info=item[1];var pct=d.total?Math.round(info.count/d.total*100):0;var cls=info.is_correct?" correct":"";
+      html+='<div class="bar-row'+cls+'"><div class="bar-top"><span class="bar-label">'+(info.is_correct?"✅ ":"❌ ")+esc(item[0])+'</span><span class="bar-value">'+pct+'% ('+info.count+')</span></div><div class="bar-track"><div class="bar-fill'+cls+'" style="width:'+pct+'%"></div></div></div>';
+    });html+='</div>';
+  });el.innerHTML=html;
+}
+
+function renderFeedback(items){
+  var el=document.getElementById("feedback-content");
+  if(!items||!items.length){el.innerHTML='<p class="empty">Noch keine Rückmeldungen</p>';return}
+  el.innerHTML=items.map(function(f){var ds=f.ts?f.ts.replace("T"," ").substring(0,16):"";
+    return '<div class="fb-card"><div class="fb-meta"><span class="fb-page-tag">'+esc(f.page)+'</span><span>📅 '+esc(ds)+'</span>'+(f.city&&f.city!=="unknown"?'<span>📍 '+esc(f.city)+'</span>':'')+'</div><div class="fb-text">'+esc(f.message)+'</div></div>';
+  }).join("");
+}
+
+// ── Exports ─────────────────────────────────────────────────
+window.doExport=function(type){
+  var period=document.getElementById("period").value;
+  fetch(API+"/admin/export.csv?type="+type+"&period="+period,{headers:{"Authorization":auth}})
+  .then(function(r){if(!r.ok)throw new Error();return r.blob()})
+  .then(function(blob){var u=URL.createObjectURL(blob);var a=document.createElement("a");a.href=u;a.download=type+"_"+SLUG+".csv";a.click();URL.revokeObjectURL(u)})
+  .catch(function(){alert("Export fehlgeschlagen")});
+};
+window.doExportAll=function(){["visits","poll","quiz","feedback"].forEach(function(t,i){setTimeout(function(){doExport(t)},i*400)})};
+
+// ── Content Loading & Editing ───────────────────────────────
+function loadContent(){
+  if(contentData)return;
+  apiFetch("/admin/content").then(function(d){contentData=d;renderProfileForm(d);renderPagesEditor(d.pages);renderLinksEditor(d.links)}).catch(function(){});
+}
+
+function renderProfileForm(d){
+  document.getElementById("pf-name").value=d.name||"";
+  document.getElementById("pf-party").value=d.party||"";
+  document.getElementById("pf-tagline").value=d.tagline||"";
+  document.getElementById("pf-election").value=d.election_date||"";
+  document.getElementById("pf-color").value=d.theme_color||"#1E6FB9";
+  document.getElementById("pf-headline").value=d.headline||"";
+  document.getElementById("pf-intro").value=d.intro_text||"";
+  document.getElementById("pf-cta").value=d.cta_text||"";
+  document.getElementById("pf-ctasub").value=d.cta_sub||"";
+  document.getElementById("pf-abtitle").value=d.about_title||"";
+  document.getElementById("pf-abtext").value=d.about_text||"";
+  document.getElementById("pf-abname").value=d.about_name_line||"";
+  document.getElementById("pf-impressum").value=d.impressum_html||"";
+  document.getElementById("pf-datenschutz").value=d.datenschutz_html||"";
+}
+
+document.getElementById("save-profile").addEventListener("click",function(){
+  var btn=this,msg=document.getElementById("profile-msg");
+  btn.disabled=true;msg.textContent="";
+  var data={
+    name:document.getElementById("pf-name").value,
+    party:document.getElementById("pf-party").value,
+    tagline:document.getElementById("pf-tagline").value,
+    election_date:document.getElementById("pf-election").value,
+    theme_color:document.getElementById("pf-color").value,
+    headline:document.getElementById("pf-headline").value,
+    intro_text:document.getElementById("pf-intro").value,
+    cta_text:document.getElementById("pf-cta").value,
+    cta_sub:document.getElementById("pf-ctasub").value,
+    about_title:document.getElementById("pf-abtitle").value,
+    about_text:document.getElementById("pf-abtext").value,
+    about_name_line:document.getElementById("pf-abname").value
+  };
+  apiFetch("/admin/content",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)})
+  .then(function(){msg.className="save-msg ok";msg.textContent="✅ Gespeichert";contentData=null;btn.disabled=false;
+    setTimeout(function(){msg.textContent=""},3000)})
+  .catch(function(){msg.className="save-msg err";msg.textContent="❌ Fehler";btn.disabled=false});
+});
+
+document.getElementById("save-legal").addEventListener("click",function(){
+  var btn=this,msg=document.getElementById("legal-msg");btn.disabled=true;
+  apiFetch("/admin/content",{method:"PUT",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({impressum_html:document.getElementById("pf-impressum").value})})
+  .then(function(){msg.className="save-msg ok";msg.textContent="✅ Gespeichert";contentData=null;btn.disabled=false;
+    setTimeout(function(){msg.textContent=""},3000)})
+  .catch(function(){msg.className="save-msg err";msg.textContent="❌ Fehler";btn.disabled=false});
+});
+
+document.getElementById("save-legal2").addEventListener("click",function(){
+  var btn=this,msg=document.getElementById("legal2-msg");btn.disabled=true;
+  apiFetch("/admin/content",{method:"PUT",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({datenschutz_html:document.getElementById("pf-datenschutz").value})})
+  .then(function(){msg.className="save-msg ok";msg.textContent="✅ Gespeichert";contentData=null;btn.disabled=false;
+    setTimeout(function(){msg.textContent=""},3000)})
+  .catch(function(){msg.className="save-msg err";msg.textContent="❌ Fehler";btn.disabled=false});
+});
+
+// ── Pages Editor ────────────────────────────────────────────
+function renderPagesEditor(pages){
+  var el=document.getElementById("pages-editor");
+  if(!pages||!pages.length){el.innerHTML='<p class="empty">Noch keine Themen-Seiten angelegt.</p>';return}
+  el.innerHTML=pages.map(function(p){
+    return '<div class="page-edit-card" style="--pc:'+esc(p.color)+'">'+
+      '<div class="page-edit-header" onclick="togglePageEdit(this)"><h3>'+esc(p.theme)+' ('+esc(p.slug)+')</h3><span>▼</span></div>'+
+      '<div class="page-edit-body" id="pe-'+esc(p.slug)+'">'+
+      '<div class="form-grid">'+
+      fg("Theme","pe-theme-"+p.slug,p.theme)+fg("Slug","pe-slug-"+p.slug,p.slug,"readonly")+
+      fg("Farbe","pe-color-"+p.slug,p.color,"color")+fg("Kachel-Titel","pe-ttitle-"+p.slug,p.tile_title)+
+      fg("Kachel-Untertitel","pe-tsub-"+p.slug,p.tile_subtitle)+fg("Headline","pe-hl-"+p.slug,p.headline)+
+      fga("Text","pe-txt-"+p.slug,p.text)+
+      fg("Poll-ID","pe-pid-"+p.slug,p.poll_id)+fg("Poll-Frage","pe-pq-"+p.slug,p.poll_question)+
+      fga("Poll-Optionen (eine pro Zeile)","pe-po-"+p.slug,(p.poll_options||[]).join("\n"))+
+      fg("Quiz-ID","pe-qid-"+p.slug,p.quiz_id)+fg("Quiz-Intro","pe-qi-"+p.slug,p.quiz_intro)+
+      fg("Quiz-Frage","pe-qq-"+p.slug,p.quiz_question)+
+      fga("Quiz-Optionen (eine pro Zeile)","pe-qo-"+p.slug,(p.quiz_options||[]).join("\n"))+
+      fg("Richtige Antwort","pe-qc-"+p.slug,p.quiz_correct)+
+      fga("Erklärung","pe-qe-"+p.slug,p.quiz_explain)+
+      '</div>'+
+      '<div style="display:flex;gap:.5rem;margin-top:.5rem">'+
+      '<button class="save-btn" onclick="savePage(\''+esc(p.slug)+'\')">💾 Seite speichern</button>'+
+      '<button class="del-btn" onclick="deletePage(\''+esc(p.slug)+'\')">🗑 Löschen</button>'+
+      '<span class="save-msg" id="pmsg-'+esc(p.slug)+'"></span></div></div></div>';
+  }).join("");
+}
+
+function fg(label,id,val,extra){
+  if(extra==="color")return '<div class="form-group"><label>'+label+'</label><input type="color" id="'+id+'" value="'+(val||"#1E6FB9")+'" style="height:42px;padding:.2rem"></div>';
+  if(extra==="readonly")return '<div class="form-group"><label>'+label+'</label><input type="text" id="'+id+'" value="'+esc(val||"")+'" readonly style="background:#f0f2f5"></div>';
+  return '<div class="form-group"><label>'+label+'</label><input type="text" id="'+id+'" value="'+esc(val||"")+'"></div>';
+}
+function fga(label,id,val){return '<div class="form-group full"><label>'+label+'</label><textarea id="'+id+'" rows="3">'+esc(val||"")+'</textarea></div>'}
+
+window.togglePageEdit=function(el){el.nextElementSibling.classList.toggle("open")};
+
+window.savePage=function(slug){
+  var msg=document.getElementById("pmsg-"+slug);msg.textContent="";
+  var data={
+    theme:document.getElementById("pe-theme-"+slug).value,
+    color:document.getElementById("pe-color-"+slug).value,
+    tile_title:document.getElementById("pe-ttitle-"+slug).value,
+    tile_subtitle:document.getElementById("pe-tsub-"+slug).value,
+    headline:document.getElementById("pe-hl-"+slug).value,
+    text:document.getElementById("pe-txt-"+slug).value,
+    poll_id:document.getElementById("pe-pid-"+slug).value,
+    poll_question:document.getElementById("pe-pq-"+slug).value,
+    poll_options:document.getElementById("pe-po-"+slug).value.split("\n").filter(Boolean),
+    quiz_id:document.getElementById("pe-qid-"+slug).value,
+    quiz_intro:document.getElementById("pe-qi-"+slug).value,
+    quiz_question:document.getElementById("pe-qq-"+slug).value,
+    quiz_options:document.getElementById("pe-qo-"+slug).value.split("\n").filter(Boolean),
+    quiz_correct:document.getElementById("pe-qc-"+slug).value,
+    quiz_explain:document.getElementById("pe-qe-"+slug).value
+  };
+  apiFetch("/admin/pages/"+slug,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)})
+  .then(function(){msg.className="save-msg ok";msg.textContent="✅ Gespeichert";contentData=null;
+    setTimeout(function(){msg.textContent=""},3000)})
+  .catch(function(){msg.className="save-msg err";msg.textContent="❌ Fehler"});
+};
+
+window.deletePage=function(slug){
+  if(!confirm("Seite '"+slug+"' wirklich löschen?"))return;
+  apiFetch("/admin/pages/"+slug,{method:"DELETE"})
+  .then(function(){contentData=null;loadContent()})
+  .catch(function(){alert("Fehler beim Löschen")});
+};
+
+document.getElementById("add-page-btn").addEventListener("click",function(){
+  var slug=prompt("Slug für neue Seite (z.B. 'umwelt'):");
+  if(!slug)return;slug=slug.toLowerCase().replace(/[^a-z0-9\-]/g,"");
+  if(!slug){alert("Ungültiger Slug");return}
+  var theme=prompt("Themen-Name (z.B. 'Umwelt'):");
+  if(!theme)return;
+  apiFetch("/admin/pages",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({slug:slug,theme:theme,color:"#1E6FB9",tile_title:theme,tile_subtitle:"",headline:"",text:"",
+      poll_id:"poll_"+slug+"_01",poll_question:"",poll_options:[],
+      quiz_id:"quiz_"+slug+"_01",quiz_intro:"",quiz_question:"",quiz_options:[],quiz_correct:"",quiz_explain:""})})
+  .then(function(){contentData=null;loadContent()})
+  .catch(function(e){alert("Fehler: "+e.message)});
+});
+
+// ── Links Editor ────────────────────────────────────────────
+function renderLinksEditor(links){
+  var el=document.getElementById("links-list");
+  if(!links||!links.length){el.innerHTML='<p class="empty">Noch keine externen Links.</p>';return}
+  el.innerHTML=links.map(function(l){
+    return '<div class="link-row"><span class="link-label">'+esc(l.label)+'</span><span class="link-url">'+esc(l.url)+'</span>'+
+      '<button class="del-btn" onclick="deleteLink('+l.id+')">✕</button></div>';
+  }).join("");
+}
+
+document.getElementById("add-link-btn").addEventListener("click",function(){
+  var label=document.getElementById("new-link-label").value.trim();
+  var url=document.getElementById("new-link-url").value.trim();
+  if(!label||!url){alert("Label und URL angeben");return}
+  apiFetch("/admin/links",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({label:label,url:url})})
+  .then(function(){document.getElementById("new-link-label").value="";document.getElementById("new-link-url").value="";contentData=null;loadContent()})
+  .catch(function(){alert("Fehler beim Hinzufügen")});
+});
+
+window.deleteLink=function(id){
+  if(!confirm("Link löschen?"))return;
+  apiFetch("/admin/links/"+id,{method:"DELETE"})
+  .then(function(){contentData=null;loadContent()})
+  .catch(function(){alert("Fehler beim Löschen")});
+};
+
+// ── Uploads ─────────────────────────────────────────────────
+function setupUpload(inputId,endpoint,statusId,previewId){
+  var input=document.getElementById(inputId);var statusEl=document.getElementById(statusId);
+  var card=input.closest(".upload-card");
+  input.addEventListener("change",function(){if(input.files.length)doUpload(input.files[0],endpoint,statusEl,previewId)});
+  card.addEventListener("dragover",function(e){e.preventDefault();card.classList.add("dragover")});
+  card.addEventListener("dragleave",function(){card.classList.remove("dragover")});
+  card.addEventListener("drop",function(e){e.preventDefault();card.classList.remove("dragover");if(e.dataTransfer.files.length)doUpload(e.dataTransfer.files[0],endpoint,statusEl,previewId)});
+}
+function doUpload(file,endpoint,statusEl,previewId){
+  statusEl.className="upload-status";statusEl.textContent="Hochladen… ("+fmtB(file.size)+")";
+  var fd=new FormData();fd.append("file",file);
+  fetch(API+endpoint,{method:"POST",headers:{"Authorization":auth},body:fd})
+  .then(function(r){if(!r.ok)return r.json().then(function(d){throw new Error(d.detail||"Fehler")});return r.json()})
+  .then(function(d){statusEl.className="upload-status ok";statusEl.textContent="✅ "+d.file+" ("+fmtB(d.size)+")";
+    if(previewId){var p=document.getElementById(previewId);if(p){p.src=p.src.split("?")[0]+"?t="+Date.now();p.style.display="block";var ph=p.nextElementSibling;if(ph&&ph.classList.contains("preview-ph"))ph.style.display="none"}}})
+  .catch(function(err){statusEl.className="upload-status err";statusEl.textContent="❌ "+err.message});
+}
+function fmtB(b){if(b<1024)return b+" B";if(b<1048576)return(b/1024).toFixed(1)+" KB";return(b/1048576).toFixed(1)+" MB"}
+setupUpload("file-portrait","/admin/upload/portrait","status-portrait","prev-portrait");
+setupUpload("file-logo","/admin/upload/logo","status-logo","prev-logo");
+setupUpload("file-geoip","/admin/upload/geoip","status-geoip",null);
+
+function esc(s){var d=document.createElement("div");d.textContent=String(s);return d.innerHTML}
+})();
+</script>
+</body>
+</html>

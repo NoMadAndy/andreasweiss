@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page.theme }} – {{ candidate.name }}{% endblock %}
+{% block description %}{{ page.headline }}{% endblock %}
+
+{% block head_extra %}
+<style>:root{--theme-color:{{ page.color or '#1E6FB9' }}}</style>
+{% endblock %}
+
+{% block header %}
+<div class="theme-bar"></div>
+<header class="site-header">
+    <div class="container">
+        <a href="/{{ candidate.slug }}/" class="back-link">← Zurück</a>
+        <span class="page-theme" style="color:{{ page.color }}">{{ page.theme }}</span>
+    </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>{{ page.headline }}</h1>
+    <p>{{ page.text }}</p>
+</section>
+
+{% if page.poll_id and page.poll_question %}
+<section class="section-card poll-section" data-poll-id="{{ page.poll_id }}" data-page="{{ page.slug }}">
+    <h2>🗳️ {{ page.poll_question }}</h2>
+    <div class="options">
+        {% for opt in page.poll_options %}
+        <button class="option-btn" data-option="{{ opt }}">{{ opt }}</button>
+        {% endfor %}
+    </div>
+    <div class="results hidden"></div>
+</section>
+{% endif %}
+
+{% if page.quiz_id and page.quiz_question %}
+<section class="section-card quiz-section" data-quiz-id="{{ page.quiz_id }}" data-page="{{ page.slug }}">
+    {% if page.quiz_intro %}
+    <p class="intro">{{ page.quiz_intro }}</p>
+    {% endif %}
+    <h2>❓ {{ page.quiz_question }}</h2>
+    <div class="options">
+        {% for opt in page.quiz_options %}
+        <button class="option-btn" data-option="{{ opt }}">{{ opt }}</button>
+        {% endfor %}
+    </div>
+    <div class="quiz-feedback hidden"></div>
+</section>
+{% endif %}
+
+<section class="section-card feedback-form" data-page="{{ page.slug }}">
+    <h2>💬 Deine Meinung zu {{ page.theme }}</h2>
+    <textarea placeholder="Was denkst du zu diesem Thema? Was fehlt? Was würdest du dir wünschen?" maxlength="1000"></textarea>
+    <span class="char-count" style="font-size:.75rem;color:#6e6e73">0 / 1000</span>
+    <div style="margin-top:.5rem">
+        <button class="submit-btn">Absenden</button>
+    </div>
+    <p class="feedback-success hidden"></p>
+</section>
+{% endblock %}

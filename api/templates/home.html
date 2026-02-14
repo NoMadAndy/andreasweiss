@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}{{ candidate.name }} – {{ candidate.tagline or 'Kommunalwahl 2026' }}{% endblock %}
+{% block description %}{{ candidate.tagline or candidate.name }}{% endblock %}
+
+{% block head_extra %}
+<style>:root{--theme-color:{{ candidate.theme_color or '#1E6FB9' }}}</style>
+{% endblock %}
+
+{% block header %}
+<header class="site-header">
+    <div class="container">
+        <a href="/{{ candidate.slug }}/" class="site-logo">{{ candidate.name }}</a>
+        <span class="site-tagline">{{ candidate.tagline or 'Kommunalwahl 2026' }}</span>
+    </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="candidate-header">
+        <img src="/uploads/{{ candidate.slug }}/portrait.jpg" alt="{{ candidate.name }}" class="portrait"
+             onerror="this.style.display='none'">
+        <div class="candidate-info">
+            <p class="name">{{ candidate.name }}</p>
+            <p class="party">
+                <img src="/uploads/{{ candidate.slug }}/logo.svg" alt="" class="party-logo"
+                     onerror="this.src='/uploads/{{ candidate.slug }}/logo.png';this.onerror=function(){this.style.display='none'}">
+                {{ candidate.party }}
+            </p>
+        </div>
+    </div>
+    {% if candidate.election_date %}
+    <span class="election-badge">Wahl am {{ candidate.election_date }}</span>
+    {% endif %}
+    <h1>{{ candidate.headline or 'Willkommen' }}</h1>
+    {% if candidate.intro_text %}
+    <p>{{ candidate.intro_text }}</p>
+    {% endif %}
+</section>
+
+{% if candidate.cta_text %}
+<div class="cta-banner">
+    <p>{{ candidate.cta_text }}</p>
+    {% if candidate.cta_sub %}
+    <p class="cta-sub">{{ candidate.cta_sub }}</p>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if pages %}
+<div class="cards-grid">
+    {% for page in pages %}
+    <a href="/{{ candidate.slug }}/{{ page.slug }}/" class="card-link" style="border-left-color:{{ page.color }}">
+        <h3>{{ page.tile_title or page.theme }}</h3>
+        <p>{{ page.tile_subtitle }}</p>
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if candidate.about_text %}
+<section class="about-box">
+    <h2>{{ candidate.about_title or 'Über mich' }}</h2>
+    <p>{{ candidate.about_text }}</p>
+    {% if candidate.about_name_line %}
+    <p class="name-line">{{ candidate.about_name_line }}</p>
+    {% endif %}
+</section>
+{% endif %}
+
+{% if links %}
+<section class="partner-section">
+    <h2>Netzwerk &amp; Partner</h2>
+    <div class="partner-cards">
+        {% for link in links %}
+        <a href="{{ link.url }}" target="_blank" rel="noopener" class="partner-card">
+            <span class="partner-label">{{ link.label }}</span>
+            <span class="partner-url">{{ link.url | replace('https://', '') | replace('http://', '') | truncate(40) }} ↗</span>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+{% endblock %}

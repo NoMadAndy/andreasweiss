@@ -76,9 +76,15 @@ def _header_legal() -> str:
 
 def _footer() -> str:
     return f"""    <footer class="site-footer">
-        <div class="container">
-            <a href="{BASE}/impressum/">Impressum</a>
-            <a href="{BASE}/datenschutz/">Datenschutz</a>
+        <div class="container footer-main">
+            <div class="footer-links">
+                <a href="{BASE}/impressum/">Impressum</a>
+                <a href="{BASE}/datenschutz/">Datenschutz</a>
+            </div>
+            <div class="footer-external">
+                <a href="https://www.bewegung-paf.de/rohrbach" target="_blank" rel="noopener">SPD Rohrbach ↗</a>
+                <a href="https://christian.keck.bayern/" target="_blank" rel="noopener">#Rohrbach2038 ↗</a>
+            </div>
             <span style="color:#aaa;font-size:.7rem">v{VERSION}</span>
         </div>
     </footer>
@@ -136,6 +142,20 @@ def generate_home() -> str:
             <h2>{escape(about['title'])}</h2>
             <p>{escape(about['text'])}</p>
             <p class="name-line">{escape(about['nameLine'])}</p>
+        </section>
+
+        <section class="partner-section">
+            <h2>Netzwerk &amp; Partner</h2>
+            <div class="partner-cards">
+                <a href="https://www.bewegung-paf.de/rohrbach" target="_blank" rel="noopener" class="partner-card">
+                    <span class="partner-label">SPD Rohrbach</span>
+                    <span class="partner-url">bewegung-paf.de/rohrbach ↗</span>
+                </a>
+                <a href="https://christian.keck.bayern/" target="_blank" rel="noopener" class="partner-card">
+                    <span class="partner-label">#Rohrbach2038</span>
+                    <span class="partner-url">christian.keck.bayern ↗</span>
+                </a>
+            </div>
         </section>
     </main>
 {_footer()}"""

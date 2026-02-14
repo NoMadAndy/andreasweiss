@@ -27,6 +27,19 @@ def _get_reader():
     return None
 
 
+def reload_reader():
+    """Close existing reader and force re-initialization."""
+    global _reader, _init_attempted
+    if _reader is not None:
+        try:
+            _reader.close()
+        except Exception:
+            pass
+    _reader = None
+    _init_attempted = False
+    return _get_reader() is not None
+
+
 def lookup(ip: str) -> dict:
     """Return {"city", "region", "country"} for the given IP. Never raises."""
     reader = _get_reader()

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Wahl 2026{% endblock %}</title>
+    <meta name="description" content="{% block description %}Kommunalwahl 2026 – Kandidaten-Plattform{% endblock %}">
+    <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/img/icon-192.png">
+    <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
+    {% if candidate is defined and candidate %}
+    <link rel="manifest" href="/{{ candidate.slug }}/manifest.json">
+    {% endif %}
+    <meta name="theme-color" content="{{ theme_color | default('#1E6FB9') }}">
+    <link rel="stylesheet" href="/assets/css/style.css">
+    {% block head_extra %}{% endblock %}
+</head>
+<body data-page="{{ page_id | default('home') }}" data-slug="{{ slug | default('') }}">
+    {% block header %}{% endblock %}
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block footer %}
+    {% if candidate is defined and candidate %}
+    <footer class="site-footer">
+        <div class="container footer-main">
+            <div class="footer-links">
+                <a href="/{{ candidate.slug }}/impressum/">Impressum</a>
+                <a href="/{{ candidate.slug }}/datenschutz/">Datenschutz</a>
+            </div>
+            {% if links %}
+            <div class="footer-external">
+                {% for link in links %}
+                <a href="{{ link.url }}" target="_blank" rel="noopener">{{ link.label }} ↗</a>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <span style="color:#aaa;font-size:.7rem">v2.0.0</span>
+        </div>
+    </footer>
+    {% endif %}
+    {% endblock %}
+
+    <script src="/assets/js/main.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

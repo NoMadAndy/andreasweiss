@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wahl 2026 – Kandidaten-Plattform</title>
+<link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
+<link rel="stylesheet" href="/assets/css/style.css">
+<style>
+.landing-hero{text-align:center;padding:3rem 0 2rem}
+.landing-hero h1{font-size:2rem;font-weight:800;margin-bottom:.5rem}
+.landing-hero p{color:var(--text-secondary);font-size:1.05rem;max-width:500px;margin:0 auto 2rem}
+.candidates-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;margin-bottom:2rem}
+.cand-card{display:block;background:var(--card-bg);border-radius:var(--radius);padding:1.5rem;text-decoration:none;color:var(--text);box-shadow:var(--shadow);border-left:4px solid var(--cc,#1e6fb9);transition:transform .15s,box-shadow .15s}
+.cand-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.cand-card h2{font-size:1.15rem;margin-bottom:.25rem}
+.cand-card .party{font-size:.85rem;color:var(--text-secondary)}
+.cand-card .tagline{font-size:.8rem;color:var(--text-secondary);margin-top:.5rem}
+.register-section{background:var(--card-bg);border-radius:var(--radius);padding:2rem;box-shadow:var(--shadow);max-width:480px;margin:0 auto 2rem}
+.register-section h2{font-size:1.2rem;margin-bottom:1rem}
+.form-group{margin-bottom:1rem}
+.form-group label{display:block;font-size:.85rem;font-weight:600;margin-bottom:.35rem;color:var(--text)}
+.form-group input{display:block;width:100%;padding:.75rem 1rem;border:2px solid var(--border);border-radius:8px;font-size:.95rem;font-family:var(--font)}
+.form-group input:focus{outline:none;border-color:var(--theme-color)}
+.form-group .hint{font-size:.75rem;color:var(--text-secondary);margin-top:.25rem}
+.register-btn{display:block;width:100%;padding:.85rem;background:linear-gradient(135deg,#1e6fb9,#1a5fa0);color:#fff;border:none;border-radius:10px;font-size:1rem;cursor:pointer;font-weight:600;font-family:var(--font);transition:transform .1s}
+.register-btn:hover{transform:translateY(-1px)}
+.register-btn:disabled{opacity:.6;cursor:default}
+.msg{margin-top:.75rem;font-size:.9rem;padding:.75rem;border-radius:8px}
+.msg.ok{background:rgba(22,163,74,.08);color:#15803d}
+.msg.err{background:rgba(220,38,38,.06);color:#b91c1c}
+.empty-state{text-align:center;color:var(--text-secondary);padding:2rem 0;font-size:.95rem}
+</style>
+</head>
+<body data-page="landing" data-slug="">
+<header class="site-header">
+    <div class="container">
+        <a href="/" class="site-logo">Wahl 2026</a>
+        <span class="site-tagline">macherwerkstatt.cc</span>
+    </div>
+</header>
+
+<main class="container">
+    <section class="landing-hero">
+        <h1>Kommunalwahl 2026</h1>
+        <p>Erstelle deine eigene Kandidaten-Seite mit Umfragen, Quiz und Bürgerbeteiligung – kostenlos und DSGVO-konform.</p>
+    </section>
+
+    <h2 style="font-size:1.1rem;margin-bottom:1rem">Aktive Kandidaten</h2>
+    {% if candidates %}
+    <div class="candidates-list">
+        {% for c in candidates %}
+        <a href="/{{ c.slug }}/" class="cand-card" style="--cc:{{ c.theme_color }}">
+            <h2>{{ c.name }}</h2>
+            {% if c.party %}<p class="party">{{ c.party }}</p>{% endif %}
+            {% if c.tagline %}<p class="tagline">{{ c.tagline }}</p>{% endif %}
+            {% if c.election_date %}<p class="tagline">🗳️ {{ c.election_date }}</p>{% endif %}
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty-state">Noch keine Kandidaten registriert.</p>
+    {% endif %}
+
+    <section class="register-section">
+        <h2>Neue Kandidaten-Seite anlegen</h2>
+        <div class="form-group">
+            <label for="reg-name">Dein Name</label>
+            <input type="text" id="reg-name" placeholder="Max Mustermann">
+        </div>
+        <div class="form-group">
+            <label for="reg-slug">URL-Kürzel</label>
+            <input type="text" id="reg-slug" placeholder="maxmustermann" pattern="[a-z0-9\-]+" maxlength="40">
+            <p class="hint">Nur Kleinbuchstaben, Zahlen und Bindestriche. Wird Teil der URL.</p>
+        </div>
+        <div class="form-group">
+            <label for="reg-user">Admin-Benutzername</label>
+            <input type="text" id="reg-user" placeholder="admin" autocomplete="username">
+        </div>
+        <div class="form-group">
+            <label for="reg-pass">Admin-Passwort</label>
+            <input type="password" id="reg-pass" placeholder="Sicheres Passwort" autocomplete="new-password">
+        </div>
+        <button class="register-btn" id="register-btn">Seite erstellen</button>
+        <div id="reg-msg" class="msg" hidden></div>
+    </section>
+</main>
+
+<footer class="site-footer">
+    <div class="container footer-main">
+        <span style="color:#aaa;font-size:.7rem">Wahl 2026 · macherwerkstatt.cc · v2.0.0</span>
+    </div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+var btn=document.getElementById("register-btn");
+var msg=document.getElementById("reg-msg");
+
+// Auto-generate slug from name
+document.getElementById("reg-name").addEventListener("input",function(){
+  var slug=this.value.toLowerCase()
+    .replace(/[äÄ]/g,"ae").replace(/[öÖ]/g,"oe").replace(/[üÜ]/g,"ue").replace(/[ß]/g,"ss")
+    .replace(/[^a-z0-9]+/g,"").substring(0,40);
+  document.getElementById("reg-slug").value=slug;
+});
+
+btn.addEventListener("click",function(){
+  var name=document.getElementById("reg-name").value.trim();
+  var slug=document.getElementById("reg-slug").value.trim();
+  var user=document.getElementById("reg-user").value.trim();
+  var pass=document.getElementById("reg-pass").value;
+  msg.hidden=true;
+  if(!name||!slug||!user||!pass){show("Bitte alle Felder ausfüllen.","err");return}
+  if(!/^[a-z0-9\-]+$/.test(slug)){show("URL-Kürzel: nur Kleinbuchstaben, Zahlen, Bindestriche.","err");return}
+  if(pass.length<6){show("Passwort muss mind. 6 Zeichen haben.","err");return}
+  btn.disabled=true;btn.textContent="Erstelle…";
+  fetch("/api/register",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({name:name,slug:slug,admin_user:user,admin_pass:pass})
+  }).then(function(r){return r.json().then(function(d){return{ok:r.ok,data:d}})})
+  .then(function(res){
+    if(res.ok){
+      show("✅ Seite erstellt! Weiterleitung…","ok");
+      setTimeout(function(){window.location.href="/"+res.data.slug+"/admin/"},1500);
+    } else {
+      show(res.data.detail||"Fehler bei der Registrierung","err");
+      btn.disabled=false;btn.textContent="Seite erstellen";
+    }
+  }).catch(function(){
+    show("Netzwerkfehler","err");btn.disabled=false;btn.textContent="Seite erstellen";
+  });
+});
+
+function show(text,cls){msg.textContent=text;msg.className="msg "+cls;msg.hidden=false}
+})();
+</script>
+</body>
+</html>
