@@ -1,6 +1,6 @@
 """FastAPI backend – Multi-tenant Wahl2026 platform."""
 
-VERSION = "3.1.0"
+VERSION = "3.2.0"
 
 import csv
 import hashlib
@@ -16,7 +16,7 @@ import shutil
 import tempfile
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, UploadFile, File
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
@@ -36,6 +36,7 @@ UPLOAD_BASE = os.environ.get("UPLOAD_BASE", "/data/uploads")
 app = FastAPI(title="Wahl2026 Platform", docs_url=None, redoc_url=None)
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 templates.env.globals["VERSION"] = VERSION
+templates.env.globals["get_platform_settings"] = get_platform_settings
 
 
 @app.on_event("startup")
@@ -546,6 +547,131 @@ async def register(data: RegisterData, _admin: str = Depends(verify_platform_adm
     # Create upload directory
     os.makedirs(os.path.join(UPLOAD_BASE, data.slug), exist_ok=True)
     return {"ok": True, "slug": data.slug}
+
+
+@app.delete("/api/platform/candidates/{slug}")
+async def delete_candidate(slug: str, _admin: str = Depends(verify_platform_admin)):
+    """Delete a candidate and all associated data."""
+    candidate = get_candidate(slug)
+    if not candidate:
+        raise HTTPException(404, "Kandidat nicht gefunden")
+    db = get_db()
+    try:
+        db.execute("DELETE FROM feedback WHERE candidate_slug=?", (slug,))
+        db.execute("DELETE FROM quiz_answers WHERE candidate_slug=?", (slug,))
+        db.execute("DELETE FROM poll_votes WHERE candidate_slug=?", (slug,))
+        db.execute("DELETE FROM visits WHERE candidate_slug=?", (slug,))
+        db.execute("DELETE FROM candidate_links WHERE candidate_slug=?", (slug,))
+        db.execute("DELETE FROM candidate_pages WHERE candidate_slug=?", (slug,))
+        db.execute("DELETE FROM candidates WHERE slug=?", (slug,))
+        db.commit()
+    finally:
+        db.close()
+    # Remove upload directory
+    upload_dir = os.path.join(UPLOAD_BASE, slug)
+    if os.path.isdir(upload_dir):
+        shutil.rmtree(upload_dir, ignore_errors=True)
+    return {"ok": True, "deleted": slug}
+
+
+@app.get("/api/platform/candidates/export")
+async def export_candidates(_admin: str = Depends(verify_platform_admin)):
+    """Export all candidates with their pages and links as JSON."""
+    db = get_db()
+    try:
+        candidates = [dict(r) for r in db.execute("SELECT * FROM candidates ORDER BY name").fetchall()]
+        for c in candidates:
+            s = c["slug"]
+            c["pages"] = [dict(r) for r in db.execute(
+                "SELECT * FROM candidate_pages WHERE candidate_slug=? ORDER BY sort_order, id", (s,)
+            ).fetchall()]
+            c["links"] = [dict(r) for r in db.execute(
+                "SELECT * FROM candidate_links WHERE candidate_slug=? ORDER BY sort_order, id", (s,)
+            ).fetchall()]
+    finally:
+        db.close()
+    content = json.dumps(candidates, ensure_ascii=False, indent=2)
+    return Response(
+        content=content,
+        media_type="application/json",
+        headers={
+            "Content-Disposition": "attachment; filename=kandidaten_export.json",
+        },
+    )
+
+
+@app.post("/api/platform/candidates/import")
+async def import_candidates(
+    request: Request,
+    _admin: str = Depends(verify_platform_admin),
+):
+    """Import candidates from JSON. Skips existing slugs unless overwrite flag is set."""
+    body = await request.json()
+    candidates = body.get("candidates", []) if isinstance(body, dict) else body
+    if not isinstance(candidates, list):
+        raise HTTPException(400, "Erwarte eine Liste von Kandidaten")
+
+    overwrite = body.get("overwrite", False) if isinstance(body, dict) else False
+    imported = []
+    skipped = []
+    db = get_db()
+    try:
+        for c in candidates:
+            slug = c.get("slug", "")
+            if not slug:
+                continue
+            existing = db.execute("SELECT slug FROM candidates WHERE slug=?", (slug,)).fetchone()
+            if existing and not overwrite:
+                skipped.append(slug)
+                continue
+            if existing and overwrite:
+                # Delete existing data first
+                db.execute("DELETE FROM candidate_links WHERE candidate_slug=?", (slug,))
+                db.execute("DELETE FROM candidate_pages WHERE candidate_slug=?", (slug,))
+                db.execute("DELETE FROM candidates WHERE slug=?", (slug,))
+
+            # Insert candidate
+            db.execute(
+                "INSERT INTO candidates (slug, name, party, tagline, election_date, headline, "
+                "intro_text, about_title, about_text, about_name_line, cta_text, cta_sub, "
+                "theme_color, impressum_html, datenschutz_html, admin_user, admin_pass, created_at) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (slug, c.get("name", slug), c.get("party", ""), c.get("tagline", ""),
+                 c.get("election_date", ""), c.get("headline", ""), c.get("intro_text", ""),
+                 c.get("about_title", "Über mich"), c.get("about_text", ""),
+                 c.get("about_name_line", ""), c.get("cta_text", ""), c.get("cta_sub", ""),
+                 c.get("theme_color", "#1E6FB9"), c.get("impressum_html", ""),
+                 c.get("datenschutz_html", ""), c.get("admin_user", "admin"),
+                 c.get("admin_pass", "changeme"), c.get("created_at", "")),
+            )
+            # Insert pages
+            for p in c.get("pages", []):
+                db.execute(
+                    "INSERT INTO candidate_pages (candidate_slug, slug, theme, color, headline, text, "
+                    "tile_title, tile_subtitle, poll_id, poll_question, poll_options, "
+                    "quiz_id, quiz_intro, quiz_question, quiz_options, quiz_correct, quiz_explain, sort_order) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (slug, p.get("slug", ""), p.get("theme", ""), p.get("color", "#1E6FB9"),
+                     p.get("headline", ""), p.get("text", ""), p.get("tile_title", ""),
+                     p.get("tile_subtitle", ""), p.get("poll_id"), p.get("poll_question", ""),
+                     json.dumps(p.get("poll_options", [])) if isinstance(p.get("poll_options"), list) else p.get("poll_options", "[]"),
+                     p.get("quiz_id"), p.get("quiz_intro", ""), p.get("quiz_question", ""),
+                     json.dumps(p.get("quiz_options", [])) if isinstance(p.get("quiz_options"), list) else p.get("quiz_options", "[]"),
+                     p.get("quiz_correct", ""), p.get("quiz_explain", ""), p.get("sort_order", 0)),
+                )
+            # Insert links
+            for l in c.get("links", []):
+                db.execute(
+                    "INSERT INTO candidate_links (candidate_slug, label, url, sort_order) VALUES (?,?,?,?)",
+                    (slug, l.get("label", ""), l.get("url", ""), l.get("sort_order", 0)),
+                )
+            # Ensure upload directory
+            os.makedirs(os.path.join(UPLOAD_BASE, slug), exist_ok=True)
+            imported.append(slug)
+        db.commit()
+    finally:
+        db.close()
+    return {"ok": True, "imported": imported, "skipped": skipped}
 
 
 # ══════════════════════════════════════════════════════════════════

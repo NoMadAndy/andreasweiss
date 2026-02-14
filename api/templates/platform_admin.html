@@ -95,6 +95,8 @@ td .mini{font-size:.72rem;color:#8e8e93;display:block;margin-top:.1rem}
 .register-form input:focus{outline:none;border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.1)}
 .register-form .hint{font-size:.72rem;color:#8e8e93;margin-top:.2rem}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+.btn-danger{padding:.3rem .6rem;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;cursor:pointer;font-size:.72rem;font-weight:600;font-family:inherit;transition:all .15s}
+.btn-danger:hover{background:#dc2626;color:#fff}
 @media(max-width:700px){.stats-grid{grid-template-columns:repeat(2,1fr)}.two-col{grid-template-columns:1fr}}
 </style>
 </head>
@@ -183,6 +185,16 @@ td .mini{font-size:.72rem;color:#8e8e93;display:block;margin-top:.1rem}
     <!-- Candidates table -->
     <section class="panel">
       <div class="panel-header"><h2>👥 Kandidaten</h2><span class="badge" id="cand-badge"></span></div>
+      <div class="exports-row" style="margin-bottom:1rem">
+        <button class="export-btn primary" id="btn-export-candidates">📥 Kandidaten exportieren (JSON)</button>
+        <button class="export-btn green" id="btn-import-candidates-trigger">📤 Kandidaten importieren</button>
+        <input type="file" accept=".json" id="file-candidates-import" style="display:none">
+        <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:#6e6e73;cursor:pointer">
+          <input type="checkbox" id="import-overwrite" style="width:14px;height:14px">
+          Bestehende überschreiben
+        </label>
+      </div>
+      <div class="form-msg" id="candidates-import-msg" style="margin-bottom:.5rem"></div>
       <div style="overflow-x:auto">
         <table id="tbl-candidates">
           <thead><tr><th>Kandidat</th><th style="text-align:right">Besuche</th><th style="text-align:right">Umfragen</th><th style="text-align:right">Quiz</th><th style="text-align:right">Feedback</th><th style="text-align:right">Seiten</th><th></th></tr></thead>
@@ -375,13 +387,14 @@ function renderCandidates(candidates){
   if(!candidates||!candidates.length){tb.innerHTML='<tr><td colspan="7" class="empty">Keine Kandidaten</td></tr>';return}
   tb.innerHTML=candidates.map(function(c){
     return '<tr>'+
-      '<td><span class="candidate-color" style="background:'+esc(c.theme_color)+'"></span><strong>'+esc(c.name)+'</strong><span class="mini">'+esc(c.party||"–")+' · /'+esc(c.slug)+'/</span></td>'+
+      '<td><span class="candidate-color" style="background:'+esc(c.theme_color)+'"></span><strong>'+esc(c.name)+'</strong><span class="mini">'+esc(c.party||"\u2013")+' \u00b7 /'+esc(c.slug)+'/</span></td>'+
       '<td style="text-align:right">'+num(c.visits)+'</td>'+
       '<td style="text-align:right">'+num(c.polls)+'</td>'+
       '<td style="text-align:right">'+num(c.quiz)+'</td>'+
       '<td style="text-align:right">'+num(c.feedback)+'</td>'+
       '<td style="text-align:right">'+c.pages+'</td>'+
-      '<td><a href="/'+esc(c.slug)+'/admin/" class="btn-link" style="font-size:.78rem">Admin →</a></td>'+
+      '<td style="white-space:nowrap"><a href="/'+esc(c.slug)+'/admin/" class="btn-link" style="font-size:.78rem">Admin \u2192</a> '+
+      '<button class="btn-danger" onclick="deleteCandidate(\''+esc(c.slug)+'\',\''+esc(c.name)+'\')">L\u00f6schen</button></td>'+
       '</tr>';
   }).join("");
 }
@@ -524,6 +537,60 @@ function doUploadGeoip(file){
   .then(function(d){geoStatus.className="upload-status ok";geoStatus.textContent="✅ "+d.file+" ("+fmtB(d.size)+")"+(d.loaded?" · geladen":" · nicht geladen")})
   .catch(function(err){geoStatus.className="upload-status err";geoStatus.textContent="❌ "+err.message});
 }
+
+// ── Delete Candidate ────────────────────────────────────────
+window.deleteCandidate=function(slug,name){
+  if(!confirm('\u26a0\ufe0f Kandidat \u201e'+name+'\u201c und alle zugehörigen Daten (Seiten, Umfragen, Besuche, Uploads) endg\u00fcltig l\u00f6schen?'))return;
+  fetch('/api/platform/candidates/'+encodeURIComponent(slug),{
+    method:'DELETE',headers:{'Authorization':auth}
+  }).then(function(r){if(!r.ok)return r.json().then(function(d){throw new Error(d.detail)});return r.json()})
+  .then(function(){
+    apiFetch('/platform/stats').then(renderStats).catch(function(){});
+  }).catch(function(err){alert('Fehler: '+err.message)});
+}
+
+// ── Export Candidates ───────────────────────────────────────
+document.getElementById('btn-export-candidates').addEventListener('click',function(){
+  fetch('/api/platform/candidates/export',{headers:{'Authorization':auth}})
+  .then(function(r){if(!r.ok)throw new Error();return r.blob()})
+  .then(function(blob){
+    var u=URL.createObjectURL(blob);var a=document.createElement('a');
+    a.href=u;a.download='kandidaten_export.json';a.click();URL.revokeObjectURL(u);
+  }).catch(function(){alert('Export fehlgeschlagen')});
+});
+
+// ── Import Candidates ───────────────────────────────────────
+var candImportInput=document.getElementById('file-candidates-import');
+var candImportMsg=document.getElementById('candidates-import-msg');
+document.getElementById('btn-import-candidates-trigger').addEventListener('click',function(){candImportInput.click()});
+candImportInput.addEventListener('change',function(){
+  if(!candImportInput.files.length)return;
+  var file=candImportInput.files[0];
+  if(!file.name.endsWith('.json')){fm(candImportMsg,'Nur .json Dateien erlaubt','err');return}
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{var data=JSON.parse(e.target.result)}catch(ex){fm(candImportMsg,'Ung\u00fcltige JSON-Datei','err');return}
+    var candidates=Array.isArray(data)?data:(data.candidates||data);
+    if(!Array.isArray(candidates)){fm(candImportMsg,'Ung\u00fcltiges Format','err');return}
+    var overwrite=document.getElementById('import-overwrite').checked;
+    var msg=candidates.length+' Kandidat(en) importieren'+(overwrite?' (bestehende werden \u00fcberschrieben)':'')+'?';
+    if(!confirm(msg))return;
+    fm(candImportMsg,'Importiere\u2026','');
+    fetch('/api/platform/candidates/import',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':auth},
+      body:JSON.stringify({candidates:candidates,overwrite:overwrite})
+    }).then(function(r){if(!r.ok)return r.json().then(function(d){throw new Error(d.detail)});return r.json()})
+    .then(function(d){
+      var t='\u2705 '+d.imported.length+' importiert';
+      if(d.skipped.length)t+=', '+d.skipped.length+' \u00fcbersprungen (existieren bereits)';
+      fm(candImportMsg,t,'ok');
+      apiFetch('/platform/stats').then(renderStats).catch(function(){});
+    }).catch(function(err){fm(candImportMsg,'\u274c '+err.message,'err')});
+  };
+  reader.readAsText(file);
+  candImportInput.value='';
+});
 
 // ── Helpers ─────────────────────────────────────────────────
 function fmtB(b){if(b<1024)return b+" B";if(b<1048576)return(b/1024).toFixed(1)+" KB";return(b/1048576).toFixed(1)+" MB"}

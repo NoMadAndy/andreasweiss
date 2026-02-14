@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ candidate.name }} – {{ candidate.tagline or 'Kommunalwahl 2026' }}{% endblock %}
+{% block title %}{{ candidate.name }} – {{ candidate.tagline or get_platform_settings().site_title or 'Kommunalwahl 2026' }}{% endblock %}
 {% block description %}{{ candidate.tagline or candidate.name }}{% endblock %}
 
 {% block head_extra %}

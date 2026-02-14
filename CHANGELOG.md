@@ -2,6 +2,21 @@
 
 Alle relevanten Änderungen an diesem Projekt werden hier dokumentiert.
 
+## [3.2.0] – 2026-02-14
+
+### Hinzugefügt
+
+- **Kandidaten löschen:** Plattform-Admin kann Kandidaten inkl. aller Daten (Seiten, Umfragen, Besuche, Uploads) über Lösch-Button in der Kandidatentabelle entfernen
+- **Kandidaten exportieren:** JSON-Export aller Kandidaten mit Seiten und Links per Button im Kandidaten-Tab
+- **Kandidaten importieren:** JSON-Import mit optionalem Überschreiben bestehender Kandidaten
+- **Dynamische Headline/Tagline:** Alle hardcodierten „Kommunalwahl 2026“-Fallbacks nutzen jetzt den konfigurierbaren `site_title` aus den Plattform-Einstellungen
+- `get_platform_settings()` als globale Jinja2-Funktion für konsistente Fallback-Werte in allen Templates
+
+### Geändert
+
+- Kandidatentabelle im Admin zeigt jetzt Lösch-Button pro Kandidat
+- Export/Import-Buttons im Kandidaten-Tab für Datenverwaltung
+
 ## [3.1.0] – 2026-02-14
 
 ### Hinzugefügt

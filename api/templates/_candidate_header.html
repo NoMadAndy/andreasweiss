@@ -1,8 +1,9 @@
 {# Reusable candidate header – included on every candidate page #}
+{% set _ps = get_platform_settings() %}
 <header class="site-header">
     <div class="container">
         <a href="/{{ candidate.slug }}/" class="site-logo">{{ candidate.name }}</a>
-        <span class="site-tagline">{{ candidate.tagline or 'Kommunalwahl 2026' }}</span>
+        <span class="site-tagline">{{ candidate.tagline or _ps.site_title or 'Kommunalwahl 2026' }}</span>
     </div>
 </header>
 
