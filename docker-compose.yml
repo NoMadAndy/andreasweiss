@@ -23,6 +23,8 @@ services:
       - DB_PATH=/data/wahl2026.db
       - GEOIP_PATH=/data/geoip/GeoLite2-City.mmdb
       - UPLOAD_BASE=/data/uploads
+      - PLATFORM_ADMIN_USER=${ADMIN_USER:-admin}
+      - PLATFORM_ADMIN_PASS=${ADMIN_PASS:-changeme}
     restart: unless-stopped
 
 volumes:

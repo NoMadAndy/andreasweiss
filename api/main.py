@@ -1,6 +1,6 @@
 """FastAPI backend – Multi-tenant Wahl2026 platform."""
 
-VERSION = "2.1.0"
+VERSION = "2.2.0"
 
 import csv
 import hashlib
@@ -20,7 +20,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Streamin
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
-from auth import verify_admin
+from auth import verify_admin, verify_platform_admin
 from db import (
     get_db, init_db, get_candidate, get_candidate_pages,
     get_candidate_links, get_all_candidates,
@@ -216,6 +216,138 @@ async def landing(request: Request):
         "candidates": candidates,
     })
 
+
+# ══════════════════════════════════════════════════════════════════
+#  Platform Admin
+# ══════════════════════════════════════════════════════════════════
+
+@app.get("/admin/", response_class=HTMLResponse)
+async def platform_admin(request: Request):
+    return templates.TemplateResponse("platform_admin.html", {"request": request})
+
+
+@app.get("/api/platform/stats")
+async def platform_stats(_admin: str = Depends(verify_platform_admin)):
+    """Cumulative stats across ALL candidates."""
+    db = get_db()
+    try:
+        candidates = [dict(r) for r in db.execute(
+            "SELECT slug, name, party, theme_color, created_at FROM candidates ORDER BY name"
+        ).fetchall()]
+        total_visits = db.execute("SELECT COUNT(*) c FROM visits").fetchone()["c"]
+        total_polls = db.execute("SELECT COUNT(*) c FROM poll_votes").fetchone()["c"]
+        total_quiz = db.execute("SELECT COUNT(*) c FROM quiz_answers").fetchone()["c"]
+        total_feedback = db.execute("SELECT COUNT(*) c FROM feedback").fetchone()["c"]
+        unique_today = db.execute(
+            "SELECT COUNT(DISTINCT uniq_day_hash) c FROM visits WHERE date(ts)=date('now')"
+        ).fetchone()["c"]
+
+        # Per-candidate breakdown
+        per_candidate = []
+        for c in candidates:
+            s = c["slug"]
+            v = db.execute("SELECT COUNT(*) c FROM visits WHERE candidate_slug=?", (s,)).fetchone()["c"]
+            p = db.execute("SELECT COUNT(*) c FROM poll_votes WHERE candidate_slug=?", (s,)).fetchone()["c"]
+            q = db.execute("SELECT COUNT(*) c FROM quiz_answers WHERE candidate_slug=?", (s,)).fetchone()["c"]
+            f = db.execute("SELECT COUNT(*) c FROM feedback WHERE candidate_slug=?", (s,)).fetchone()["c"]
+            pages_count = db.execute("SELECT COUNT(*) c FROM candidate_pages WHERE candidate_slug=?", (s,)).fetchone()["c"]
+            per_candidate.append({
+                "slug": s, "name": c["name"], "party": c.get("party", ""),
+                "theme_color": c.get("theme_color", "#1E6FB9"),
+                "created_at": c.get("created_at", ""),
+                "visits": v, "polls": p, "quiz": q, "feedback": f,
+                "pages": pages_count,
+            })
+
+        # Daily visits (last 30 days)
+        daily = [dict(r) for r in db.execute(
+            "SELECT date(ts) day, COUNT(*) total, COUNT(DISTINCT uniq_day_hash) uniq "
+            "FROM visits WHERE ts >= datetime('now', '-30 days') GROUP BY date(ts) ORDER BY day"
+        ).fetchall()]
+    finally:
+        db.close()
+
+    return {
+        "total_visits": total_visits,
+        "total_polls": total_polls,
+        "total_quiz": total_quiz,
+        "total_feedback": total_feedback,
+        "unique_today": unique_today,
+        "candidates": per_candidate,
+        "daily": daily,
+        "candidate_count": len(candidates),
+    }
+
+
+@app.get("/api/platform/export/db")
+async def platform_export_db(_admin: str = Depends(verify_platform_admin)):
+    """Download a snapshot of the entire SQLite database."""
+    from db import DB_PATH as _db_path
+    if not os.path.exists(_db_path):
+        raise HTTPException(404, "Datenbank nicht gefunden")
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
+    tmp.close()
+    src = get_db()
+    try:
+        import sqlite3
+        dst = sqlite3.connect(tmp.name)
+        src.backup(dst)
+        dst.close()
+    finally:
+        src.close()
+    return FileResponse(
+        tmp.name,
+        media_type="application/x-sqlite3",
+        filename="wahl2026_backup.db",
+        background=None,
+    )
+
+
+@app.post("/api/platform/import/db")
+async def platform_import_db(
+    file: UploadFile = File(...),
+    _admin: str = Depends(verify_platform_admin),
+):
+    """Import / replace the entire SQLite database from an uploaded .db file."""
+    if not file.filename.endswith(".db"):
+        raise HTTPException(400, "Nur .db Dateien erlaubt")
+    data = await file.read()
+    if len(data) > 200 * 1024 * 1024:
+        raise HTTPException(400, "Datei zu groß (max 200 MB)")
+
+    # Validate it's a real SQLite DB
+    import sqlite3
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
+    tmp.write(data)
+    tmp.close()
+    try:
+        check = sqlite3.connect(tmp.name)
+        cur = check.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        tables = [r[0] for r in cur.fetchall()]
+        check.close()
+        required = {"candidates", "candidate_pages", "visits"}
+        if not required.issubset(set(tables)):
+            os.unlink(tmp.name)
+            raise HTTPException(400, f"Ungültige Datenbank – fehlende Tabellen: {required - set(tables)}")
+    except sqlite3.DatabaseError:
+        os.unlink(tmp.name)
+        raise HTTPException(400, "Ungültige SQLite-Datei")
+
+    # Replace the live database
+    from db import DB_PATH as _db_path
+    # Backup first
+    backup_path = _db_path + ".bak"
+    if os.path.exists(_db_path):
+        shutil.copy2(_db_path, backup_path)
+    shutil.move(tmp.name, _db_path)
+    # Re-initialize to pick up changes
+    init_db()
+    return {"ok": True, "tables": tables, "size": len(data)}
+
+
+# ══════════════════════════════════════════════════════════════════
+#  Candidate HTML Pages
+# ══════════════════════════════════════════════════════════════════
 
 @app.get("/{slug}/", response_class=HTMLResponse)
 async def candidate_home(slug: str, request: Request):
@@ -847,32 +979,143 @@ async def export_candidate_json(
     )
 
 
-@app.get("/api/{slug}/admin/export/db")
-async def export_database(
+# ── Candidate Import ──────────────────────────────────────────────
+
+@app.post("/api/{slug}/admin/import")
+async def import_candidate_json(
     slug: str,
+    file: UploadFile = File(...),
     _admin: str = Depends(verify_admin),
 ):
-    """Download a snapshot of the entire SQLite database."""
+    """Import candidate data from a previously exported JSON file."""
     _require_candidate(slug)
-    from db import DB_PATH as _db_path
-    if not os.path.exists(_db_path):
-        raise HTTPException(404, "Datenbank nicht gefunden")
-    # Create a safe copy (WAL checkpoint) to avoid partial reads
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
-    tmp.close()
-    src = get_db()
+    if not file.filename.endswith(".json"):
+        raise HTTPException(400, "Nur .json Dateien erlaubt")
+    raw = await file.read()
+    if len(raw) > 50 * 1024 * 1024:
+        raise HTTPException(400, "Datei zu groß (max 50 MB)")
     try:
-        dst = __import__("sqlite3").connect(tmp.name)
-        src.backup(dst)
-        dst.close()
+        payload = json.loads(raw)
+    except json.JSONDecodeError:
+        raise HTTPException(400, "Ungültiges JSON")
+
+    if "candidate" not in payload:
+        raise HTTPException(400, "Kein 'candidate'-Objekt im JSON gefunden")
+
+    imported = {"profile": False, "pages": 0, "links": 0, "visits": 0, "polls": 0, "quiz": 0, "feedback": 0}
+    db = get_db()
+    try:
+        # Update profile fields (skip admin_user, admin_pass, slug)
+        c = payload["candidate"]
+        profile_fields = [
+            "name", "party", "tagline", "election_date", "theme_color",
+            "headline", "intro_text", "cta_text", "cta_sub",
+            "about_title", "about_text", "about_name_line",
+            "impressum_html", "datenschutz_html",
+        ]
+        sets = []
+        vals = []
+        for f in profile_fields:
+            if f in c and c[f] is not None:
+                sets.append(f"{f}=?")
+                vals.append(c[f])
+        if sets:
+            vals.append(slug)
+            db.execute(f"UPDATE candidates SET {','.join(sets)} WHERE slug=?", vals)
+            imported["profile"] = True
+
+        # Import pages (upsert by slug)
+        for p in payload.get("pages", []):
+            page_slug = p.get("slug")
+            if not page_slug:
+                continue
+            existing = db.execute(
+                "SELECT id FROM candidate_pages WHERE candidate_slug=? AND slug=?",
+                (slug, page_slug),
+            ).fetchone()
+            poll_opts = json.dumps(p.get("poll_options", []), ensure_ascii=False)
+            quiz_opts = json.dumps(p.get("quiz_options", []), ensure_ascii=False)
+            if existing:
+                db.execute(
+                    "UPDATE candidate_pages SET theme=?, color=?, headline=?, text=?, "
+                    "tile_title=?, tile_subtitle=?, poll_id=?, poll_question=?, poll_options=?, "
+                    "quiz_id=?, quiz_intro=?, quiz_question=?, quiz_options=?, quiz_correct=?, quiz_explain=? "
+                    "WHERE candidate_slug=? AND slug=?",
+                    (p.get("theme",""), p.get("color","#1E6FB9"), p.get("headline",""), p.get("text",""),
+                     p.get("tile_title",""), p.get("tile_subtitle",""),
+                     p.get("poll_id",""), p.get("poll_question",""), poll_opts,
+                     p.get("quiz_id",""), p.get("quiz_intro",""), p.get("quiz_question",""),
+                     quiz_opts, p.get("quiz_correct",""), p.get("quiz_explain",""),
+                     slug, page_slug),
+                )
+            else:
+                db.execute(
+                    "INSERT INTO candidate_pages (candidate_slug, slug, theme, color, headline, text, "
+                    "tile_title, tile_subtitle, poll_id, poll_question, poll_options, "
+                    "quiz_id, quiz_intro, quiz_question, quiz_options, quiz_correct, quiz_explain) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (slug, page_slug, p.get("theme",""), p.get("color","#1E6FB9"),
+                     p.get("headline",""), p.get("text",""),
+                     p.get("tile_title",""), p.get("tile_subtitle",""),
+                     p.get("poll_id",""), p.get("poll_question",""), poll_opts,
+                     p.get("quiz_id",""), p.get("quiz_intro",""), p.get("quiz_question",""),
+                     quiz_opts, p.get("quiz_correct",""), p.get("quiz_explain","")),
+                )
+            imported["pages"] += 1
+
+        # Import links (append, skip duplicates by url)
+        for l in payload.get("links", []):
+            exists = db.execute(
+                "SELECT id FROM candidate_links WHERE candidate_slug=? AND url=?",
+                (slug, l["url"]),
+            ).fetchone()
+            if not exists:
+                db.execute(
+                    "INSERT INTO candidate_links (candidate_slug, label, url) VALUES (?,?,?)",
+                    (slug, l["label"], l["url"]),
+                )
+                imported["links"] += 1
+
+        # Import analytics data (append)
+        analytics = payload.get("analytics", {})
+        for v in analytics.get("visits", []):
+            db.execute(
+                "INSERT INTO visits (candidate_slug, ts, page, city, region, country, user_agent_short, ref) "
+                "VALUES (?,?,?,?,?,?,?,?)",
+                (slug, v.get("ts"), v.get("page",""), v.get("city",""), v.get("region",""),
+                 v.get("country",""), v.get("user_agent_short",""), v.get("ref","")),
+            )
+            imported["visits"] += 1
+        for pv in analytics.get("poll_votes", []):
+            db.execute(
+                "INSERT INTO poll_votes (candidate_slug, ts, page, poll_id, option, city, region, country) "
+                "VALUES (?,?,?,?,?,?,?,?)",
+                (slug, pv.get("ts"), pv.get("page",""), pv.get("poll_id",""), pv.get("option",""),
+                 pv.get("city",""), pv.get("region",""), pv.get("country","")),
+            )
+            imported["polls"] += 1
+        for qa in analytics.get("quiz_answers", []):
+            db.execute(
+                "INSERT INTO quiz_answers (candidate_slug, ts, page, quiz_id, option, is_correct, city, region, country) "
+                "VALUES (?,?,?,?,?,?,?,?,?)",
+                (slug, qa.get("ts"), qa.get("page",""), qa.get("quiz_id",""), qa.get("option",""),
+                 qa.get("is_correct", 0), qa.get("city",""), qa.get("region",""), qa.get("country","")),
+            )
+            imported["quiz"] += 1
+        for fb in analytics.get("feedback", []):
+            db.execute(
+                "INSERT INTO feedback (candidate_slug, ts, page, message, city, region, country) "
+                "VALUES (?,?,?,?,?,?,?)",
+                (slug, fb.get("ts"), fb.get("page",""), fb.get("message",""),
+                 fb.get("city",""), fb.get("region",""), fb.get("country","")),
+            )
+            imported["feedback"] += 1
+
+        db.commit()
     finally:
-        src.close()
-    return FileResponse(
-        tmp.name,
-        media_type="application/x-sqlite3",
-        filename="wahl2026_backup.db",
-        background=None,
-    )
+        db.close()
+
+    return {"ok": True, "imported": imported}
 
 
 # ── File Uploads ──────────────────────────────────────────────────
