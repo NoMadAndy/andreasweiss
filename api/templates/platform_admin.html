@@ -397,7 +397,7 @@ regBtn.addEventListener("click",function(){
   }).then(function(r){return r.json().then(function(d){return{ok:r.ok,data:d}})})
   .then(function(res){
     if(res.ok){
-      fm(regMsg,"✅ Kandidat „"+name+"" erstellt! → /"+slug+"/","ok");
+      fm(regMsg,'✅ Kandidat \u201E'+name+'\u201C erstellt! \u2192 /'+slug+'/','ok');
       document.getElementById("reg-name").value="";document.getElementById("reg-slug").value="";
       document.getElementById("reg-user").value="";document.getElementById("reg-pass").value="";
       // Reload candidates
