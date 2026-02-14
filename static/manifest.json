@@ -1,0 +1,28 @@
+{
+  "name": "Andreas Weiss – Kommunalwahl Rohrbach",
+  "short_name": "Andreas Weiss",
+  "description": "Themenseiten zur Kommunalwahl Rohrbach 2026",
+  "start_url": "/andreasweiss/",
+  "scope": "/andreasweiss/",
+  "display": "standalone",
+  "background_color": "#f5f5f7",
+  "theme_color": "#1E6FB9",
+  "icons": [
+    {
+      "src": "/andreasweiss/assets/img/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/andreasweiss/assets/img/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/andreasweiss/assets/img/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
