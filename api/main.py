@@ -1,6 +1,6 @@
 """FastAPI backend – Multi-tenant Wahlplattform."""
 
-VERSION = "3.4.0"
+VERSION = "3.5.0"
 
 import csv
 import hashlib
@@ -379,6 +379,87 @@ async def platform_import_db(
     # Re-initialize to pick up changes
     init_db()
     return {"ok": True, "tables": tables, "size": len(data)}
+
+
+# ── Analytics (Statistics) Export / Import / Reset ────────────
+ANALYTICS_TABLES = ["visits", "poll_votes", "quiz_answers", "feedback"]
+
+
+@app.get("/api/platform/analytics/export")
+async def platform_analytics_export(_admin: str = Depends(verify_platform_admin)):
+    """Export all analytics data (visits, poll_votes, quiz_answers, feedback) as JSON."""
+    db = get_db()
+    try:
+        result: dict = {"export_date": datetime.now().isoformat(), "version": VERSION}
+        for table in ANALYTICS_TABLES:
+            rows = db.execute(f"SELECT * FROM {table}").fetchall()
+            result[table] = [dict(r) for r in rows]
+    finally:
+        db.close()
+    content = json.dumps(result, ensure_ascii=False, indent=2)
+    return Response(
+        content=content,
+        media_type="application/json",
+        headers={"Content-Disposition": 'attachment; filename="analytics_export.json"'},
+    )
+
+
+@app.post("/api/platform/analytics/import")
+async def platform_analytics_import(
+    file: UploadFile = File(...),
+    _admin: str = Depends(verify_platform_admin),
+):
+    """Import analytics data from a JSON file. Merges with existing data (appends rows)."""
+    if not file.filename.endswith(".json"):
+        raise HTTPException(400, "Nur .json Dateien erlaubt")
+    raw = await file.read()
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        raise HTTPException(400, "Ungültige JSON-Datei")
+
+    db = get_db()
+    counts: dict = {}
+    try:
+        for table in ANALYTICS_TABLES:
+            rows = data.get(table, [])
+            if not rows:
+                counts[table] = 0
+                continue
+            # Get column names from DB (excluding 'id' – auto-increment)
+            cols_info = db.execute(f"PRAGMA table_info({table})").fetchall()
+            all_cols = [c["name"] for c in cols_info if c["name"] != "id"]
+            inserted = 0
+            for row in rows:
+                vals = {c: row.get(c, "") for c in all_cols}
+                placeholders = ", ".join(["?"] * len(vals))
+                col_names = ", ".join(vals.keys())
+                db.execute(
+                    f"INSERT INTO {table} ({col_names}) VALUES ({placeholders})",
+                    list(vals.values()),
+                )
+                inserted += 1
+            counts[table] = inserted
+        db.commit()
+    finally:
+        db.close()
+    return {"ok": True, "imported": counts}
+
+
+@app.delete("/api/platform/analytics")
+async def platform_analytics_reset(_admin: str = Depends(verify_platform_admin)):
+    """Delete ALL analytics data (visits, poll_votes, quiz_answers, feedback)."""
+    db = get_db()
+    counts: dict = {}
+    try:
+        for table in ANALYTICS_TABLES:
+            count = db.execute(f"SELECT COUNT(*) c FROM {table}").fetchone()["c"]
+            db.execute(f"DELETE FROM {table}")
+            counts[table] = count
+        db.commit()
+    finally:
+        db.close()
+    return {"ok": True, "deleted": counts}
 
 
 # ══════════════════════════════════════════════════════════════════

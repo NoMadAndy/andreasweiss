@@ -271,6 +271,35 @@ td .mini{font-size:.72rem;color:#8e8e93;display:block;margin-top:.1rem}
 
   <!-- ═══ Tab: Data ═══ -->
   <div class="tab-panel" id="tab-data">
+    <!-- Analytics Section -->
+    <section class="panel">
+      <div class="panel-header"><h2>📊 Statistikdaten</h2></div>
+      <p style="font-size:.85rem;color:var(--text-secondary);margin-bottom:1rem">Besuche, Umfrage-Stimmen, Quiz-Antworten und Rückmeldungen aller Kandidaten.</p>
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-start">
+        <div>
+          <h3 style="font-size:.9rem;margin-bottom:.5rem">Export</h3>
+          <div class="exports-row">
+            <button class="export-btn primary" id="btn-export-analytics">📥 Statistik exportieren (JSON)</button>
+          </div>
+        </div>
+        <div>
+          <h3 style="font-size:.9rem;margin-bottom:.5rem">Import</h3>
+          <div class="exports-row">
+            <button class="export-btn green" id="btn-import-analytics-trigger">📤 Statistik importieren</button>
+            <input type="file" accept=".json" id="file-analytics-import" style="display:none">
+          </div>
+        </div>
+        <div>
+          <h3 style="font-size:.9rem;margin-bottom:.5rem">Zurücksetzen</h3>
+          <div class="exports-row">
+            <button class="export-btn" id="btn-reset-analytics" style="border-color:#fca5a5;color:#dc2626">🗑️ Alle Statistiken löschen</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-msg" id="analytics-msg" style="margin-top:.75rem"></div>
+    </section>
+
+    <!-- DB Section -->
     <section class="panel">
       <div class="panel-header"><h2>🗄️ Datenbank</h2></div>
       <div style="display:flex;gap:1.5rem;flex-wrap:wrap;align-items:flex-start">
@@ -494,6 +523,49 @@ saveBtn.addEventListener("click",function(){
     fm(settingsMsg,"❌ Fehler beim Speichern","err");
     saveBtn.disabled=false;saveBtn.textContent="Speichern";
   });
+});
+
+// ── Analytics Export ─────────────────────────────────────────
+document.getElementById("btn-export-analytics").addEventListener("click",function(){
+  fetch("/api/platform/analytics/export",{headers:{"Authorization":auth}})
+  .then(function(r){if(!r.ok)throw new Error();return r.blob()})
+  .then(function(blob){var u=URL.createObjectURL(blob);var a=document.createElement("a");a.href=u;a.download="analytics_export.json";a.click();URL.revokeObjectURL(u)})
+  .catch(function(){alert("Export fehlgeschlagen")});
+});
+
+// ── Analytics Import ────────────────────────────────────────
+var analyticsInput=document.getElementById("file-analytics-import");
+var analyticsMsg=document.getElementById("analytics-msg");
+document.getElementById("btn-import-analytics-trigger").addEventListener("click",function(){analyticsInput.click()});
+analyticsInput.addEventListener("change",function(){
+  if(!analyticsInput.files.length)return;
+  var file=analyticsInput.files[0];
+  if(!file.name.endsWith(".json")){fm(analyticsMsg,"Nur .json Dateien erlaubt","err");return}
+  if(!confirm("Statistikdaten aus "+file.name+" importieren?\nDie Daten werden zu den bestehenden hinzugef\u00fcgt."))return;
+  fm(analyticsMsg,"Importiere\u2026","");
+  var fd=new FormData();fd.append("file",file);
+  fetch("/api/platform/analytics/import",{method:"POST",headers:{"Authorization":auth},body:fd})
+  .then(function(r){if(!r.ok)return r.json().then(function(d){throw new Error(d.detail||"Fehler")});return r.json()})
+  .then(function(d){
+    var t="\u2705 Import: "+num(d.imported.visits)+" Besuche, "+num(d.imported.poll_votes)+" Umfragen, "+num(d.imported.quiz_answers)+" Quiz, "+num(d.imported.feedback)+" R\u00fcckmeldungen";
+    fm(analyticsMsg,t,"ok");
+    apiFetch("/platform/stats").then(renderStats).catch(function(){});
+  }).catch(function(err){fm(analyticsMsg,"\u274c "+err.message,"err")});
+  analyticsInput.value="";
+});
+
+// ── Analytics Reset ─────────────────────────────────────────
+document.getElementById("btn-reset-analytics").addEventListener("click",function(){
+  if(!confirm("\u26a0\ufe0f Alle Statistikdaten (Besuche, Umfragen, Quiz, R\u00fcckmeldungen) unwiderruflich l\u00f6schen?"))return;
+  if(!confirm("Wirklich ALLE Statistiken l\u00f6schen? Diese Aktion kann nicht r\u00fcckg\u00e4ngig gemacht werden!"))return;
+  fm(analyticsMsg,"L\u00f6sche\u2026","");
+  fetch("/api/platform/analytics",{method:"DELETE",headers:{"Authorization":auth}})
+  .then(function(r){if(!r.ok)return r.json().then(function(d){throw new Error(d.detail||"Fehler")});return r.json()})
+  .then(function(d){
+    var t="\u2705 Gel\u00f6scht: "+num(d.deleted.visits)+" Besuche, "+num(d.deleted.poll_votes)+" Umfragen, "+num(d.deleted.quiz_answers)+" Quiz, "+num(d.deleted.feedback)+" R\u00fcckmeldungen";
+    fm(analyticsMsg,t,"ok");
+    apiFetch("/platform/stats").then(renderStats).catch(function(){});
+  }).catch(function(err){fm(analyticsMsg,"\u274c "+err.message,"err")});
 });
 
 // ── DB Export ───────────────────────────────────────────────

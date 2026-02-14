@@ -2,6 +2,15 @@
 
 Alle relevanten Änderungen an diesem Projekt werden hier dokumentiert.
 
+## [3.5.0] – 2026-02-14
+
+### Hinzugefügt
+
+- **Statistik exportieren:** JSON-Export aller Analysedaten (Besuche, Umfragen, Quiz, Rückmeldungen) im Daten-Tab
+- **Statistik importieren:** JSON-Import von Analysedaten, Daten werden zu bestehenden hinzugefügt
+- **Statistik zurücksetzen:** Alle Analysedaten mit doppelter Bestätigung unwiderruflich löschen
+- Neue API-Endpoints: `GET /api/platform/analytics/export`, `POST /api/platform/analytics/import`, `DELETE /api/platform/analytics`
+
 ## [3.4.0] – 2026-02-14
 
 ### Geändert
