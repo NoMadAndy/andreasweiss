@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Wahl 2026{% endblock %}</title>
     <meta name="description" content="{% block description %}Kommunalwahl 2026 – Kandidaten-Plattform{% endblock %}">
+    {% if candidate is defined and candidate %}
+    <link rel="icon" type="image/svg+xml" href="/{{ candidate.slug }}/favicon.svg">
+    {% else %}
     <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
+    {% endif %}
     <link rel="icon" type="image/png" sizes="192x192" href="/assets/img/icon-192.png">
     <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
     {% if candidate is defined and candidate %}

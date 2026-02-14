@@ -2,6 +2,18 @@
 
 Alle relevanten Änderungen an diesem Projekt werden hier dokumentiert.
 
+## [2.3.0] – 2026-02-14
+
+### Hinzugefügt
+
+- **Dynamisches Favicon:** Pro Kandidat generiertes SVG-Favicon mit Initialen und Theme-Farbe (`/{slug}/favicon.svg`)
+- Gradient aus Theme-Farbe → dunklerer Verlauf, weiße Initialen, abgerundetes Quadrat
+
+### Geändert
+
+- **Templates:** Kandidaten-Seiten nutzen jetzt `/{slug}/favicon.svg` statt dem statischen `/assets/img/favicon.svg`
+- Landing-Page und Plattform-Admin behalten das generische Favicon
+
 ## [2.2.0] – 2026-02-14
 
 ### Hinzugefügt

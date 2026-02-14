@@ -1,6 +1,6 @@
 """FastAPI backend – Multi-tenant Wahl2026 platform."""
 
-VERSION = "2.2.0"
+VERSION = "2.3.0"
 
 import csv
 import hashlib
@@ -362,6 +362,44 @@ async def candidate_home(slug: str, request: Request):
         "slug": slug,
         "page_id": "home",
         "theme_color": candidate["theme_color"],
+    })
+
+
+@app.get("/{slug}/favicon.svg")
+async def candidate_favicon(slug: str):
+    """Generate a personalised SVG favicon from candidate initials + theme color."""
+    candidate = _require_candidate(slug)
+    name = candidate.get("name", slug)
+    color = candidate.get("theme_color", "#1E6FB9")
+    # Build initials (max 2 chars) from first letters of name parts
+    parts = name.split()
+    if len(parts) >= 2:
+        initials = (parts[0][0] + parts[-1][0]).upper()
+    elif parts:
+        initials = parts[0][:2].upper()
+    else:
+        initials = "?"
+    # Derive a darker shade for gradient end
+    try:
+        r, g, b = int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16)
+        r2, g2, b2 = max(0, r - 60), max(0, g - 60), max(0, b - 60)
+        color2 = f"#{r2:02x}{g2:02x}{b2:02x}"
+    except (ValueError, IndexError):
+        color2 = color
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="{color}"/>
+      <stop offset="100%" stop-color="{color2}"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <text x="256" y="280" text-anchor="middle" dominant-baseline="central"
+        font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif"
+        font-size="240" font-weight="800" fill="#fff" letter-spacing="-8">{initials}</text>
+</svg>'''
+    return HTMLResponse(content=svg, media_type="image/svg+xml", headers={
+        "Cache-Control": "public, max-age=86400",
     })
 
 
