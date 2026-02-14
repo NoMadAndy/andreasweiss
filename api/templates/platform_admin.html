@@ -430,7 +430,7 @@ function renderCandidates(candidates){
   if(!candidates||!candidates.length){tb.innerHTML='<tr><td colspan="7" class="empty">Keine Kandidaten</td></tr>';return}
   tb.innerHTML=candidates.map(function(c){
     return '<tr>'+
-      '<td><span class="candidate-color" style="background:'+esc(c.theme_color)+'"></span><strong>'+esc(c.name)+'</strong><span class="mini">'+esc(c.party||"\u2013")+' \u00b7 /'+esc(c.slug)+'/</span></td>'+
+      '<td><a href="/'+esc(c.slug)+'/" style="text-decoration:none;color:inherit"><span class="candidate-color" style="background:'+esc(c.theme_color)+'"></span><strong>'+esc(c.name)+'</strong><span class="mini">'+esc(c.party||"\u2013")+' \u00b7 /'+esc(c.slug)+'/</span></a></td>'+
       '<td style="text-align:right">'+num(c.visits)+'</td>'+
       '<td style="text-align:right">'+num(c.polls)+'</td>'+
       '<td style="text-align:right">'+num(c.quiz)+'</td>'+
