@@ -1,5 +1,5 @@
 /**
- * Wahl 2026 – Frontend Logic (multi-tenant)
+ * Wahlplattform – Frontend Logic (multi-tenant)
  * Reads slug from body[data-slug]. No cookies, localStorage for duplicate prevention.
  */
 (function () {

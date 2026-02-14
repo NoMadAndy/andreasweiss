@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Plattform-Admin · Wahl2026</title>
+<title>Plattform-Admin · {{ get_platform_settings().site_title or 'Wahlplattform' }}</title>
 <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
 <meta name="theme-color" content="#7c3aed">
 <style>
@@ -108,7 +108,7 @@ td .mini{font-size:.72rem;color:#8e8e93;display:block;margin-top:.1rem}
 <div id="login-view">
   <div class="login-card">
     <h1>🔧 Plattform-Admin</h1>
-    <p class="sub">Wahl2026 · Gesamtverwaltung</p>
+    <p class="sub">{{ get_platform_settings().site_title or 'Wahlplattform' }} · Gesamtverwaltung</p>
     <input type="text" id="user" placeholder="Benutzer" autocomplete="username" autofocus>
     <input type="password" id="pass" placeholder="Passwort" autocomplete="current-password">
     <button id="login-btn">Anmelden</button>
@@ -120,7 +120,7 @@ td .mini{font-size:.72rem;color:#8e8e93;display:block;margin-top:.1rem}
   <div class="dash-header">
     <div>
       <h1>🔧 Plattform-Admin</h1>
-      <p class="sub">Wahl2026 · Gesamtübersicht</p>
+      <p class="sub">{{ get_platform_settings().site_title or 'Wahlplattform' }} · Gesamtübersicht</p>
     </div>
     <div class="controls">
       <a href="/" class="btn-link">🏠 Startseite</a>
@@ -217,7 +217,7 @@ td .mini{font-size:.72rem;color:#8e8e93;display:block;margin-top:.1rem}
           <div>
             <div class="fg">
               <label for="s-site-title">Seitentitel</label>
-              <input type="text" id="s-site-title" placeholder="Kommunalwahl 2026">
+              <input type="text" id="s-site-title" placeholder="z. B. Kommunalwahl 2026">
             </div>
             <div class="fg">
               <label for="s-site-subtitle">Untertitel / Slogan</label>
@@ -225,7 +225,7 @@ td .mini{font-size:.72rem;color:#8e8e93;display:block;margin-top:.1rem}
             </div>
             <div class="fg">
               <label for="s-hero-headline">Hero-Überschrift</label>
-              <input type="text" id="s-hero-headline" placeholder="Kommunalwahl 2026">
+              <input type="text" id="s-hero-headline" placeholder="z. B. Willkommen zur Wahl">
             </div>
             <div class="fg">
               <label for="s-hero-text">Hero-Text</label>
@@ -243,7 +243,7 @@ td .mini{font-size:.72rem;color:#8e8e93;display:block;margin-top:.1rem}
             </div>
             <div class="fg">
               <label for="s-footer-text">Footer-Text</label>
-              <input type="text" id="s-footer-text" placeholder="Wahl 2026 · macherwerkstatt.cc">
+              <input type="text" id="s-footer-text" placeholder="z. B. Wahlplattform · meinedomain.de">
             </div>
           </div>
         </div>
@@ -500,7 +500,7 @@ saveBtn.addEventListener("click",function(){
 document.getElementById("btn-export-db").addEventListener("click",function(){
   fetch("/api/platform/export/db",{headers:{"Authorization":auth}})
   .then(function(r){if(!r.ok)throw new Error();return r.blob()})
-  .then(function(blob){var u=URL.createObjectURL(blob);var a=document.createElement("a");a.href=u;a.download="wahl2026_backup.db";a.click();URL.revokeObjectURL(u)})
+  .then(function(blob){var u=URL.createObjectURL(blob);var a=document.createElement("a");a.href=u;a.download="platform_backup.db";a.click();URL.revokeObjectURL(u)})
   .catch(function(){alert("Export fehlgeschlagen")});
 });
 

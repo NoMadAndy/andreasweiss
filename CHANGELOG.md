@@ -2,6 +2,17 @@
 
 Alle relevanten Änderungen an diesem Projekt werden hier dokumentiert.
 
+## [3.4.0] – 2026-02-14
+
+### Geändert
+
+- **Neutrale Defaults:** Alle hardcodierten „Wahl 2026" / „Kommunalwahl 2026" / „Wahl2026"-Texte durch konfigurierbare Werte ersetzt
+- Standard-Fallbacks in Templates nutzen jetzt „Wahlplattform" statt wahlspezifischer Bezeichnungen
+- DB-Defaults für `site_title`, `hero_headline`, `footer_text` neutralisiert (greift nur bei Neuinstallation)
+- Platform-Admin zeigt konfigurierten `site_title` in Titel, Login und Dashboard
+- Backup-Dateiname: `platform_backup.db` statt `wahl2026_backup.db`
+- Placeholder-Texte in Einstellungsformularen als Beispiele formuliert („z. B. …")
+
 ## [3.3.0] – 2026-02-14
 
 ### Hinzugefügt

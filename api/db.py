@@ -1,4 +1,4 @@
-"""SQLite database – multi-tenant schema for Wahl2026 platform."""
+"""SQLite database – multi-tenant schema for Wahlplattform."""
 
 import json
 import os
@@ -155,13 +155,13 @@ def init_db():
     """)
     # Seed default platform settings if empty
     defaults = {
-        "site_title": "Kommunalwahl 2026",
+        "site_title": "Wahlplattform",
         "site_subtitle": "Gemeinsam für unsere Gemeinde",
-        "hero_headline": "Kommunalwahl 2026",
+        "hero_headline": "Willkommen",
         "hero_text": "Lernen Sie unsere Kandidaten kennen – mit Umfragen, Quiz und Bürgerbeteiligung.",
         "campaign_title": "",
         "campaign_text": "",
-        "footer_text": "Wahl 2026 · macherwerkstatt.cc",
+        "footer_text": "Wahlplattform",
         "show_candidates": "1",
         "redirect_url": "",
     }

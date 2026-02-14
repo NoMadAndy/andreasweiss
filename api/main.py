@@ -1,6 +1,6 @@
-"""FastAPI backend – Multi-tenant Wahl2026 platform."""
+"""FastAPI backend – Multi-tenant Wahlplattform."""
 
-VERSION = "3.3.0"
+VERSION = "3.4.0"
 
 import csv
 import hashlib
@@ -33,7 +33,7 @@ ANALYTICS_SALT = os.environ.get("ANALYTICS_SALT", "default-salt-change-me")
 UPLOAD_BASE = os.environ.get("UPLOAD_BASE", "/data/uploads")
 
 # ── App ───────────────────────────────────────────────────────────
-app = FastAPI(title="Wahl2026 Platform", docs_url=None, redoc_url=None)
+app = FastAPI(title="Wahlplattform", docs_url=None, redoc_url=None)
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 templates.env.globals["VERSION"] = VERSION
 templates.env.globals["get_platform_settings"] = get_platform_settings
@@ -334,7 +334,7 @@ async def platform_export_db(_admin: str = Depends(verify_platform_admin)):
     return FileResponse(
         tmp.name,
         media_type="application/x-sqlite3",
-        filename="wahl2026_backup.db",
+        filename="platform_backup.db",
         background=None,
     )
 

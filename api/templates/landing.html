@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ settings.site_title or 'Kommunalwahl 2026' }}</title>
+<title>{{ settings.site_title or 'Wahlplattform' }}</title>
 <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
 <link rel="stylesheet" href="/assets/css/style.css">
 <style>
@@ -30,14 +30,14 @@
 <body data-page="landing" data-slug="">
 <header class="site-header">
     <div class="container">
-        <a href="/" class="site-logo">{{ settings.site_title or 'Wahl 2026' }}</a>
+        <a href="/" class="site-logo">{{ settings.site_title or 'Wahlplattform' }}</a>
         <span class="site-tagline">{{ settings.site_subtitle or '' }}</span>
     </div>
 </header>
 
 <main class="container">
     <section class="landing-hero">
-        <h1>{{ settings.hero_headline or 'Kommunalwahl 2026' }}</h1>
+        <h1>{{ settings.hero_headline or 'Willkommen' }}</h1>
         {% if settings.hero_text %}
         <p class="subtitle">{{ settings.hero_text }}</p>
         {% endif %}
@@ -78,7 +78,7 @@
 
 <footer class="site-footer">
     <div class="container footer-main">
-        <span style="color:#aaa;font-size:.7rem">{{ settings.footer_text or 'Wahl 2026' }} · v{{ VERSION }}</span>
+        <span style="color:#aaa;font-size:.7rem">{{ settings.footer_text or settings.site_title or 'Wahlplattform' }} · v{{ VERSION }}</span>
         <a href="/admin/" class="admin-link">Admin</a>
     </div>
 </footer>

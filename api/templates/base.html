@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{{ get_platform_settings().site_title or 'Wahl 2026' }}{% endblock %}</title>
-    <meta name="description" content="{% block description %}{{ get_platform_settings().site_title or 'Kommunalwahl 2026' }} – Kandidaten-Plattform{% endblock %}">
+    <title>{% block title %}{{ get_platform_settings().site_title or 'Wahlplattform' }}{% endblock %}</title>
+    <meta name="description" content="{% block description %}{{ get_platform_settings().site_title or 'Wahlplattform' }} – Kandidaten-Plattform{% endblock %}">
     {% if candidate is defined and candidate %}
     <link rel="icon" type="image/svg+xml" href="/{{ candidate.slug }}/favicon.svg">
     {% else %}

@@ -1,4 +1,4 @@
-# Wahl 2026 – Multi-Tenant Kandidaten-Plattform
+# Wahlplattform – Multi-Tenant Kandidaten-Plattform
 
 Multi-Tenant-Plattform für Kommunalwahl-Kandidaten mit eigenen Themenseiten, Umfragen, Quiz und DSGVO-konformem Tracking. Jeder Kandidat verwaltet seine Inhalte selbst über ein Admin-Dashboard.
 
