@@ -1,6 +1,6 @@
 """FastAPI backend – Multi-tenant Wahl2026 platform."""
 
-VERSION = "2.0.0"
+VERSION = "2.1.0"
 
 import csv
 import hashlib

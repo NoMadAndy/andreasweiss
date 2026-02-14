@@ -2,6 +2,14 @@
 
 Alle relevanten Änderungen an diesem Projekt werden hier dokumentiert.
 
+## [2.1.0] – 2026-02-14
+
+### Hinzugefügt
+
+- **Kandidaten-Export:** Vollständiger JSON-Export (Profil, Seiten, Links, Analytics) ohne Credentials
+- **Datenbank-Backup:** SQLite-Snapshot-Download via `sqlite3.backup()` für konsistente Sicherung
+- **Admin-UI:** Neue Export-Buttons „Kandidat als JSON" und „Gesamte Datenbank" im Dashboard
+
 ## [2.0.0] – 2026-02-14
 
 ### Hinzugefügt
