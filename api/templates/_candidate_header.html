@@ -9,7 +9,7 @@
 
 <section class="candidate-hero-bar" style="--cand-color:{{ candidate.theme_color or '#1E6FB9' }}">
     <div class="container">
-        <div class="candidate-header">
+        <a href="/{{ candidate.slug }}/" class="candidate-header" style="text-decoration:none;color:inherit">
             <img src="/uploads/{{ candidate.slug }}/portrait.jpg" alt="{{ candidate.name }}" class="portrait"
                  onerror="this.style.display='none'">
             <div class="candidate-info">
@@ -20,7 +20,7 @@
                     {{ candidate.party }}
                 </p>
             </div>
-        </div>
+        </a>
         {% if candidate.election_date %}
         <span class="election-badge" style="background:var(--cand-color)">Wahl am {{ candidate.election_date }}</span>
         {% endif %}
