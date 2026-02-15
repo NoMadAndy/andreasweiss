@@ -68,6 +68,15 @@
     </section>
     {% endif %}
 
+    {% if settings.wahlinfo_enabled == '1' %}
+    <a href="/wahlinfo/" class="cand-card" style="--cc:#1e6fb9;border-left-width:4px;justify-content:center;text-align:center;padding:1rem 1.5rem">
+        <div class="cand-info" style="text-align:center">
+            <h2 style="font-size:1.05rem">ℹ️ {{ settings.wahlinfo_title or 'Wahlinfo' }}</h2>
+            <p class="tagline">Alles über den Ablauf der Wahl, den Stimmzettel und wie Sie wählen →</p>
+        </div>
+    </a>
+    {% endif %}
+
     {% if candidates is defined and candidates %}
     <h2 class="section-title">Unsere Kandidaten</h2>
     <div class="candidates-grid">
@@ -94,6 +103,9 @@
 
 <footer class="site-footer">
     <div class="container footer-main">
+        {% if settings.wahlinfo_enabled == '1' %}
+        <a href="/wahlinfo/" style="color:#8e8e93;font-size:.72rem;text-decoration:none">ℹ️ {{ settings.wahlinfo_title or 'Wahlinfo' }}</a>
+        {% endif %}
         <span style="color:#aaa;font-size:.7rem">{{ settings.footer_text or settings.site_title or 'Wahlplattform' }} · v{{ VERSION }}</span>
         <a href="/admin/" class="admin-link">Admin</a>
     </div>

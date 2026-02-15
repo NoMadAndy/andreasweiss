@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ settings.wahlinfo_title or 'Wahlinfo' }} – {{ settings.site_title or 'Wahlplattform' }}</title>
+<meta name="description" content="{{ settings.wahlinfo_title or 'Wahlinfo' }} – {{ settings.site_title or 'Wahlplattform' }}">
+<link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
+<link rel="stylesheet" href="/assets/css/style.css">
+<style>
+.wahlinfo-hero{text-align:center;padding:2.5rem 0 1.5rem}
+.wahlinfo-hero h1{font-size:2rem;font-weight:800;color:var(--text);margin-bottom:.25rem}
+.wahlinfo-hero .subtitle{color:var(--text-secondary);font-size:1rem}
+.wahlinfo-content{background:var(--card-bg);border-radius:var(--radius);padding:2rem;margin-bottom:2rem;box-shadow:var(--shadow);max-width:780px;margin-left:auto;margin-right:auto}
+.wahlinfo-content h2{font-size:1.3rem;font-weight:700;color:var(--text);margin:1.75rem 0 .75rem;padding-bottom:.4rem;border-bottom:2px solid #e0e0e0}
+.wahlinfo-content h2:first-child{margin-top:0}
+.wahlinfo-content h3{font-size:1.1rem;font-weight:600;color:var(--text);margin:1.25rem 0 .5rem}
+.wahlinfo-content p{color:var(--text-secondary);line-height:1.7;margin:0 0 .75em}
+.wahlinfo-content ul,.wahlinfo-content ol{margin:0 0 1em 1.5em;color:var(--text-secondary);line-height:1.7}
+.wahlinfo-content li{margin-bottom:.35em}
+.wahlinfo-content strong,.wahlinfo-content b{font-weight:600;color:var(--text)}
+.wahlinfo-content em,.wahlinfo-content i{font-style:italic}
+.wahlinfo-content a{color:#1e6fb9;text-decoration:underline}
+.wahlinfo-content a:hover{opacity:.8}
+.wahlinfo-content img{max-width:100%;height:auto;border-radius:8px;margin:.75em 0;display:block}
+.wahlinfo-content blockquote{border-left:3px solid #1e6fb9;margin:.75em 0;padding:.5em 1em;color:var(--text-secondary);background:rgba(0,0,0,.02);border-radius:0 6px 6px 0}
+.wahlinfo-content hr{border:none;border-top:1px solid #e0e0e0;margin:1.5em 0}
+.wahlinfo-content table{width:100%;border-collapse:collapse;margin:1em 0}
+.wahlinfo-content th,.wahlinfo-content td{text-align:left;padding:.5rem .75rem;border-bottom:1px solid #e0e0e0;font-size:.9rem}
+.wahlinfo-content th{font-weight:600;color:var(--text);background:#f8f8fa}
+.back-link{display:inline-flex;align-items:center;gap:.3rem;color:var(--text-secondary);text-decoration:none;font-size:.88rem;margin-bottom:1rem}
+.back-link:hover{color:var(--text)}
+@media(max-width:480px){
+  .wahlinfo-hero{padding:1.5rem 0 1rem}
+  .wahlinfo-hero h1{font-size:1.5rem}
+  .wahlinfo-content{padding:1.25rem}
+  .wahlinfo-content h2{font-size:1.1rem}
+  .wahlinfo-content h3{font-size:1rem}
+}
+</style>
+</head>
+<body data-page="wahlinfo" data-slug="">
+<header class="site-header">
+    <div class="container">
+        <a href="/" class="site-logo">{{ settings.site_title or 'Wahlplattform' }}</a>
+        <span class="site-tagline">{{ settings.site_subtitle or '' }}</span>
+    </div>
+</header>
+
+<main class="container">
+    <a href="/" class="back-link">← Zurück zur Startseite</a>
+    <section class="wahlinfo-hero">
+        <h1>{{ settings.wahlinfo_title or 'Wahlinfo' }}</h1>
+    </section>
+
+    <div class="wahlinfo-content md-content">
+        {{ settings.wahlinfo_content | markdown }}
+    </div>
+</main>
+
+<footer class="site-footer">
+    <div class="container footer-main">
+        <span style="color:#aaa;font-size:.7rem">{{ settings.footer_text or settings.site_title or 'Wahlplattform' }} · v{{ VERSION }}</span>
+        <a href="/admin/" class="admin-link" style="display:inline-block;margin-left:.5rem;color:#aaa;font-size:.72rem;text-decoration:none;opacity:.5">Admin</a>
+    </div>
+</footer>
+</body>
+</html>

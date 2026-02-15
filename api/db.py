@@ -6,6 +6,105 @@ import sqlite3
 
 DB_PATH = os.environ.get("DB_PATH", "/data/wahl2026.db")
 
+# ── Default Wahlinfo Content ──────────────────────────────────────
+_DEFAULT_WAHLINFO = """## 🗳️ Kommunalwahl am 9. März 2026
+
+Am **9. März 2026** finden in ganz Bayern die Kommunalwahlen statt. In **Rohrbach an der Ilm** werden der **Gemeinderat** und der/die **Bürgermeister/in** gewählt. Gleichzeitig finden die **Kreistagswahl** und die **Landratswahl** im Landkreis Pfaffenhofen a.d. Ilm statt.
+
+---
+
+## 📋 Was wird gewählt?
+
+### Gemeinderatswahl
+- Der Gemeinderat von Rohrbach besteht aus **16 Mitgliedern** (plus Bürgermeister/in)
+- Sie haben **16 Stimmen**, die Sie auf die Kandidaten verteilen können
+- **Kumulieren**: Sie können einem Kandidaten bis zu **3 Stimmen** geben
+- **Panaschieren**: Sie können Ihre Stimmen auf Kandidaten **verschiedener Listen** verteilen
+
+### Bürgermeisterwahl
+- Hier haben Sie **1 Stimme** für Ihren Wunschkandidaten
+- Erreicht kein Kandidat mehr als 50% der Stimmen, findet eine **Stichwahl** am 23. März 2026 statt
+
+---
+
+## ✏️ Der Stimmzettel – So funktioniert's
+
+### Variante 1: Nur ein Kreuz bei einer Liste
+Sie machen **ein Kreuz oben bei einer Partei/Liste**. Dann erhält jeder Kandidat auf dieser Liste automatisch eine Stimme – bis alle 16 Stimmen verteilt sind.
+
+### Variante 2: Einzelne Kandidaten ankreuzen
+Sie verteilen Ihre **16 Stimmen einzeln** an beliebige Kandidaten – auch über Parteigrenzen hinweg. Pro Kandidat sind **maximal 3 Stimmen** möglich.
+
+### Variante 3: Listenstimme + Einzelstimmen kombinieren
+Sie kreuzen **eine Liste an** und verändern diese, indem Sie einzelne Kandidaten zusätzlich ankreuzen oder streichen. Achtung: Die Gesamtzahl darf **16 Stimmen nicht überschreiten**.
+
+> **Tipp:** Nehmen Sie sich Zeit für Ihren Stimmzettel! Informieren Sie sich vorab über die Kandidaten und deren Positionen.
+
+---
+
+## 🏛️ Kreistagswahl & Landratswahl
+
+Gleichzeitig mit der Gemeinderatswahl wählen Sie auch den **Kreistag** des Landkreises Pfaffenhofen a.d. Ilm und den/die **Landrätin/Landrat**.
+
+### Kreistag
+- Der Kreistag hat **50 Sitze**
+- Das Wahlverfahren ist identisch: **Kumulieren und Panaschieren**
+- Sie haben **50 Stimmen** zu vergeben
+
+### Warum lokale Kandidaten wichtig sind
+Achten Sie bei der Kreistagswahl besonders auf **Kandidaten aus dem Gemeindebereich Rohrbach**! Je mehr Vertreter aus unserer Gemeinde im Kreistag sitzen, desto besser werden die Interessen von Rohrbach auf Landkreisebene vertreten – **unabhängig von der Partei**.
+
+> **Überparteilicher Appell:** Wählen Sie Kandidaten aus Rohrbach – egal welcher Partei sie angehören. Lokale Vertretung ist wichtiger als Parteizugehörigkeit!
+
+---
+
+## 🎪 Antretende Parteien & Listen
+
+### Gemeinderatswahl Rohrbach
+
+- **SPD** – *Sozialdemokratische Partei Deutschlands* – Für soziale Gerechtigkeit, bezahlbares Wohnen und starke Gemeindepolitik
+- **CSU** – *Christlich-Soziale Union*
+- **Freie Wähler** – *Freie Wählergemeinschaft*
+- **GRÜNE** – *Bündnis 90/Die Grünen*
+
+### Kreistagswahl Landkreis Pfaffenhofen
+
+Auch hier treten mehrere Listen an. Unterstützen Sie **Rohrbacher Kandidaten** auf allen Listen!
+
+---
+
+## 📌 Wichtige Infos
+
+- **Wahltag:** Sonntag, 9. März 2026
+- **Wahlzeit:** 8:00 – 18:00 Uhr
+- **Wahlbenachrichtigung:** Kommt per Post – bitte mitbringen!
+- **Briefwahl:** Kann im Rathaus oder online beantragt werden
+- **Stichwahl** (falls nötig): 23. März 2026
+
+### Was Sie brauchen
+- Ihre **Wahlbenachrichtigung** (oder einen gültigen Ausweis)
+- Etwas **Zeit** – der Stimmzettel ist groß!
+- Einen **Kugelschreiber** (liegt auch im Wahllokal bereit)
+
+---
+
+## 🔴 Warum SPD wählen?
+
+Die **SPD Rohrbach** setzt sich ein für:
+
+- **Bezahlbaren Wohnraum** – Familien sollen sich das Leben in Rohrbach leisten können
+- **Starke Infrastruktur** – Schnelles Internet, gute Straßen, ÖPNV-Anbindung
+- **Kinder & Jugend** – Moderne Betreuungsangebote und Freizeitmöglichkeiten
+- **Transparenz** – Offene Gemeindepolitik, bei der alle Bürger mitreden können
+- **Nachhaltigkeit** – Klima- und umweltbewusste Entscheidungen für unsere Zukunft
+
+[Mehr über unsere Kandidaten erfahren →](/)
+
+---
+
+*Haben Sie Fragen zur Wahl? Sprechen Sie uns an – wir helfen gerne!*
+"""
+
 
 def get_db() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
@@ -164,6 +263,9 @@ def init_db():
         "footer_text": "Wahlplattform",
         "show_candidates": "1",
         "redirect_url": "",
+        "wahlinfo_enabled": "0",
+        "wahlinfo_title": "Wahlinfo",
+        "wahlinfo_content": _DEFAULT_WAHLINFO,
     }
     existing = conn.execute("SELECT COUNT(*) c FROM platform_settings").fetchone()[0]
     if existing == 0:

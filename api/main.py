@@ -1,6 +1,6 @@
 """FastAPI backend – Multi-tenant Wahlplattform."""
 
-VERSION = "3.8.1"
+VERSION = "3.9.0"
 
 import csv
 import hashlib
@@ -260,6 +260,17 @@ async def landing(request: Request):
     })
 
 
+@app.get("/wahlinfo/", response_class=HTMLResponse)
+async def wahlinfo_page(request: Request):
+    settings = get_platform_settings()
+    if settings.get("wahlinfo_enabled") != "1":
+        raise HTTPException(404, "Seite nicht gefunden")
+    return templates.TemplateResponse("wahlinfo.html", {
+        "request": request,
+        "settings": settings,
+    })
+
+
 # ══════════════════════════════════════════════════════════════════
 #  Platform Admin
 # ══════════════════════════════════════════════════════════════════
@@ -336,6 +347,7 @@ async def platform_put_settings(request: Request, _admin: str = Depends(verify_p
         "site_title", "site_subtitle", "hero_headline", "hero_text",
         "campaign_title", "campaign_text", "footer_text",
         "show_candidates", "redirect_url",
+        "wahlinfo_enabled", "wahlinfo_title", "wahlinfo_content",
     }
     filtered = {k: str(v) for k, v in data.items() if k in allowed_keys}
     if filtered:
