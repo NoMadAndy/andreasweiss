@@ -483,7 +483,8 @@ function renderGeo(tab){
   var rows=geoData[tab]||[];var tb=document.querySelector("#tbl-geo tbody");
   var key=tab==="cities"?"city":tab==="regions"?"region":"country";
   if(!rows.length){tb.innerHTML='<tr><td colspan="2" class="empty">Keine Daten</td></tr>';return}
- 
+  tb.innerHTML=rows.map(function(r){return '<tr><td>'+esc(r[key])+'</td><td style="text-align:right">'+r.cnt+'</td></tr>'}).join("");
+}
 
 function renderDevices(devices){
   var el=document.getElementById("devices-chart");
@@ -505,7 +506,6 @@ function renderDevices(devices){
       '<div style="font-size:.75rem;color:#aaa">'+d.cnt+' Aufrufe</div>'+
       '</div>';
   }).join("");
-} tb.innerHTML=rows.map(function(r){return '<tr><td>'+esc(r[key])+'</td><td style="text-align:right">'+r.cnt+'</td></tr>'}).join("");
 }
 
 function renderPolls(polls,meta){
