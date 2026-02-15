@@ -48,7 +48,7 @@ def verify_admin(
     if not slug:
         log.error(f"Empty slug provided for path: {request.url.path}")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Kein Kandidat angegeben",
         )
 
@@ -64,7 +64,10 @@ def verify_admin(
 
     if not row:
         log.warning(f"Candidate not found: {slug}")
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Kandidat nicht gefunden")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Kandidat nicht gefunden",
+        )
 
     user_ok = secrets.compare_digest(
         credentials.username.encode("utf-8"), row["admin_user"].encode("utf-8")
@@ -89,7 +92,11 @@ def verify_platform_admin(
 ) -> str:
     """Verify platform-level admin credentials from environment variables."""
     if not credentials:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Zugangsdaten erforderlich")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Zugangsdaten erforderlich",
+            headers={"WWW-Authenticate": "Basic"},
+        )
 
     user_ok = secrets.compare_digest(
         credentials.username.encode("utf-8"),
@@ -103,5 +110,6 @@ def verify_platform_admin(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Ungültige Plattform-Zugangsdaten",
+            headers={"WWW-Authenticate": "Basic"},
         )
     return credentials.username
