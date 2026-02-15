@@ -90,6 +90,15 @@ async def start_digest_scheduler():
 
 # ── Helpers ───────────────────────────────────────────────────────
 def _client_ip(request: Request) -> str:
+    # Cloudflare
+    cf = request.headers.get("CF-Connecting-IP")
+    if cf:
+        return cf.strip()
+    # True-Client-IP (some CDNs)
+    tci = request.headers.get("True-Client-IP")
+    if tci:
+        return tci.strip()
+    # Standard proxy chain
     forwarded = request.headers.get("X-Forwarded-For")
     if forwarded:
         return forwarded.split(",")[0].strip()
