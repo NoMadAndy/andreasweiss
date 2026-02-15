@@ -586,6 +586,7 @@ function renderCandidates(candidates){
       '<button class="text-red" onclick="resetCandAnalytics(\''+esc(c.slug)+'\',\''+esc(c.name)+'\')">\ud83d\uddd1\ufe0f Statistik zur\u00fccksetzen</button>'+
       '</div></div> '+
       '<button class="btn-danger" onclick="deleteCandidate(\''+esc(c.slug)+'\',\''+esc(c.name)+'\')">L\u00f6schen</button>'+
+      '<button class="btn-sm" onclick="resetCandPassword(\''+esc(c.slug)+'\',\''+esc(c.name)+'\')" title="Passwort zur\u00fccksetzen">\ud83d\udd11</button> '+
       '</td>'+
       '</tr>';
   }).join("");
@@ -933,6 +934,19 @@ window.deleteCandidate=function(slug,name){
   .then(function(){
     apiFetch('/platform/stats').then(renderStats).catch(function(){});
   }).catch(function(err){alert('Fehler: '+err.message)});
+}
+
+// ── Reset Candidate Password ────────────────────────────────
+window.resetCandPassword=function(slug,name){
+  var pw=prompt('Neues Passwort f\u00fcr \u201e'+name+'\u201c eingeben (mind. 6 Zeichen):');
+  if(!pw)return;
+  if(pw.length<6){alert('Passwort muss mindestens 6 Zeichen haben.');return}
+  fetch('/api/platform/candidates/'+encodeURIComponent(slug)+'/password',{
+    method:'PUT',headers:{'Authorization':auth,'Content-Type':'application/json'},
+    body:JSON.stringify({password:pw})
+  }).then(function(r){if(!r.ok)return r.json().then(function(d){throw new Error(d.detail)});return r.json()})
+  .then(function(){alert('Passwort f\u00fcr \u201e'+name+'\u201c wurde zur\u00fcckgesetzt.')})
+  .catch(function(err){alert('Fehler: '+err.message)});
 }
 
 // ── Export Candidates ───────────────────────────────────────

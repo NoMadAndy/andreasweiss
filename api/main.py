@@ -1020,6 +1020,24 @@ async def register(data: RegisterData, _admin: str = Depends(verify_platform_adm
     return {"ok": True, "slug": data.slug}
 
 
+@app.put("/api/platform/candidates/{slug}/password")
+async def reset_candidate_password(slug: str, body: dict, _admin: str = Depends(verify_platform_admin)):
+    """Reset a candidate's admin password (platform admin only)."""
+    new_pass = (body.get("password") or "").strip()
+    if len(new_pass) < 6:
+        raise HTTPException(400, "Passwort muss mindestens 6 Zeichen haben")
+    candidate = get_candidate(slug)
+    if not candidate:
+        raise HTTPException(404, "Kandidat nicht gefunden")
+    db = get_db()
+    try:
+        db.execute("UPDATE candidates SET admin_pass=? WHERE slug=?", (new_pass, slug))
+        db.commit()
+    finally:
+        db.close()
+    return {"ok": True, "slug": slug}
+
+
 @app.delete("/api/platform/candidates/{slug}")
 async def delete_candidate(slug: str, _admin: str = Depends(verify_platform_admin)):
     """Delete a candidate and all associated data."""
@@ -1912,7 +1930,7 @@ async def admin_export(
             writer = csv.writer(output)
             writer.writerow(["ts", "page", "city", "region", "country", "device_type", "user_agent", "ref"])
             for r in rows:
-                writer.writerow([r["ts"], r["page"], r["city"], r["region"], r["country"], r["device_type"], r["user_agent_short"], r["ref"]])
+                writer.writerow([r["ts"], r["page"], r["city"], r["region"], r["country"], r["device_type"], r["device_type"], r["device_type"], r["device_type"], r["user_agent_short"], r["ref"]])
         elif type == "poll":
             rows = db.execute(
                 f"SELECT ts, page, poll_id, option, city, region, country FROM poll_votes WHERE {cond} AND ts >= datetime('now', ?) ORDER BY ts DESC",
@@ -2109,7 +2127,7 @@ async def import_candidate_json(
                 "INSERT INTO visits (candidate_slug, ts, page, city, region, country, device_type, user_agent_short, ref) "
                 "VALUES (?,?,?,?,?,?,?,?,?)",
                 (slug, v.get("ts"), v.get("page",""), v.get("city",""), v.get("region",""),
-                 v.get("country",""), v.get("device_type","unknown"), v.get("user_agent_short",""), v.get("ref","")),
+                 v.get("country",""), v.get("device_type","unknown"), v.get("device_type","unknown"), v.get("user_agent_short",""), v.get("ref","")),
             )
             imported["visits"] += 1
         for pv in analytics.get("poll_votes", []):
