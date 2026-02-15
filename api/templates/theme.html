@@ -14,7 +14,7 @@
 {% block content %}
 <section class="hero">
     <h1>{{ page.headline }}</h1>
-    <p>{{ page.text }}</p>
+    <div class="md-content">{{ page.text | markdown }}</div>
 </section>
 
 {% if page.poll_id and page.poll_question %}

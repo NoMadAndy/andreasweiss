@@ -128,6 +128,22 @@ a { color: var(--theme-color); }
   line-height: 1.7;
 }
 
+/* ── Markdown Content ───────────────────────────────────────────── */
+.md-content { line-height: 1.7; color: var(--text-secondary); }
+.md-content p { margin: 0 0 0.75em; }
+.md-content p:last-child { margin-bottom: 0; }
+.md-content a { color: var(--theme-color, #1E6FB9); text-decoration: underline; word-break: break-word; }
+.md-content a:hover { opacity: .8; }
+.md-content img { max-width: 100%; height: auto; border-radius: 8px; margin: 0.75em 0; display: block; }
+.md-content strong, .md-content b { font-weight: 600; color: var(--text); }
+.md-content em, .md-content i { font-style: italic; }
+.md-content ul, .md-content ol { margin: 0 0 0.75em 1.5em; }
+.md-content li { margin-bottom: 0.25em; }
+.md-content blockquote { border-left: 3px solid var(--theme-color, #1E6FB9); margin: 0.75em 0; padding: 0.5em 1em; color: var(--text-secondary); background: rgba(0,0,0,.02); border-radius: 0 6px 6px 0; }
+.md-content hr { border: none; border-top: 1px solid #e0e0e0; margin: 1em 0; }
+.hero .md-content { font-size: 1rem; }
+.about-box .md-content { font-size: 0.95rem; line-height: 1.6; }
+
 /* ── Cards Grid (Home) ──────────────────────────────────────────── */
 .cards-grid {
   display: grid;
@@ -617,6 +633,9 @@ a { color: var(--theme-color); }
   .about-box { padding: 1.15rem; }
   .about-box h2 { font-size: 1rem; }
   .about-box p { font-size: .88rem; }
+  .about-box .md-content { font-size: .88rem; }
+  .hero .md-content { font-size: .92rem; }
+  .md-content img { border-radius: 6px; margin: .5em 0; }
   .section-card { padding: 1.15rem; }
   .section-card h2 { font-size: 1rem; }
   .option-btn { padding: .7rem .85rem; font-size: .88rem; }

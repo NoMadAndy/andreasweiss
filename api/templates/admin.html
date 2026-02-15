@@ -138,6 +138,10 @@ tbody tr:hover{background:#fafbfc}
 .form-group input:focus,.form-group textarea:focus{outline:none;border-color:#1e6fb9}
 .form-group textarea{min-height:80px;resize:vertical}
 .form-group .hint{font-size:.72rem;color:#8e8e93;margin-top:.2rem}
+.form-group .hint-inline{font-weight:400;font-size:.72rem;color:#8e8e93}
+.md-toolbar{display:flex;gap:.3rem;margin-bottom:.3rem}
+.md-toolbar button{padding:.25rem .5rem;font-size:.78rem;border:1px solid #d0d0d0;border-radius:5px;background:#f5f5f7;cursor:pointer;font-family:inherit}
+.md-toolbar button:hover{background:#e8e8ed}
 .form-group.full{grid-column:1/-1}
 .save-btn{padding:.7rem 1.5rem;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:10px;font-size:.9rem;cursor:pointer;font-weight:600;font-family:inherit}
 .save-btn:hover{transform:translateY(-1px)}
@@ -229,11 +233,15 @@ tbody tr:hover{background:#fafbfc}
         <div class="form-group"><label>Wahltag</label><input type="text" id="pf-election" placeholder="08.03.2026"></div>
         <div class="form-group"><label>Theme-Farbe</label><input type="color" id="pf-color" style="height:42px;padding:.2rem"></div>
         <div class="form-group"><label>Headline (Startseite)</label><input type="text" id="pf-headline"></div>
-        <div class="form-group full"><label>Einleitungstext</label><textarea id="pf-intro" rows="3"></textarea></div>
+        <div class="form-group full"><label>Einleitungstext <span class="hint-inline">Markdown: **fett**, [Link](URL), ![Bild](URL)</span></label>
+          <div class="md-toolbar"><button type="button" onclick="mdInsert('pf-intro','link')">🔗 Link</button><button type="button" onclick="mdInsert('pf-intro','image')">🖼️ Bild</button><button type="button" onclick="mdInsert('pf-intro','bold')"><b>B</b></button><button type="button" onclick="mdInsert('pf-intro','italic')"><i>I</i></button></div>
+          <textarea id="pf-intro" rows="4"></textarea></div>
         <div class="form-group full"><label>CTA-Banner Text</label><input type="text" id="pf-cta"></div>
         <div class="form-group full"><label>CTA-Banner Untertitel</label><input type="text" id="pf-ctasub"></div>
         <div class="form-group full"><label>Über-mich Titel</label><input type="text" id="pf-abtitle"></div>
-        <div class="form-group full"><label>Über-mich Text</label><textarea id="pf-abtext" rows="3"></textarea></div>
+        <div class="form-group full"><label>Über-mich Text <span class="hint-inline">Markdown: **fett**, [Link](URL), ![Bild](URL)</span></label>
+          <div class="md-toolbar"><button type="button" onclick="mdInsert('pf-abtext','link')">🔗 Link</button><button type="button" onclick="mdInsert('pf-abtext','image')">🖼️ Bild</button><button type="button" onclick="mdInsert('pf-abtext','bold')"><b>B</b></button><button type="button" onclick="mdInsert('pf-abtext','italic')"><i>I</i></button></div>
+          <textarea id="pf-abtext" rows="4"></textarea></div>
         <div class="form-group full"><label>Über-mich Namenszeile</label><input type="text" id="pf-abname" placeholder="Max Mustermann · Kandidat"></div>
       </div>
       <button class="save-btn" id="save-profile">💾 Profil speichern</button>
@@ -615,7 +623,7 @@ function renderPagesEditor(pages){
       fg("Theme","pe-theme-"+p.slug,p.theme)+fg("Slug","pe-slug-"+p.slug,p.slug,"readonly")+
       fg("Farbe","pe-color-"+p.slug,p.color,"color")+fg("Kachel-Titel","pe-ttitle-"+p.slug,p.tile_title)+
       fg("Kachel-Untertitel","pe-tsub-"+p.slug,p.tile_subtitle)+fg("Headline","pe-hl-"+p.slug,p.headline)+
-      fga("Text","pe-txt-"+p.slug,p.text)+
+      fgm("Text","pe-txt-"+p.slug,p.text)+
       fg("Poll-ID","pe-pid-"+p.slug,p.poll_id)+fg("Poll-Frage","pe-pq-"+p.slug,p.poll_question)+
       fga("Poll-Optionen (eine pro Zeile)","pe-po-"+p.slug,(p.poll_options||[]).join("\n"))+
       fg("Quiz-ID","pe-qid-"+p.slug,p.quiz_id)+fg("Quiz-Intro","pe-qi-"+p.slug,p.quiz_intro)+
@@ -636,8 +644,21 @@ function fg(label,id,val,extra){
   if(extra==="readonly")return '<div class="form-group"><label>'+label+'</label><input type="text" id="'+id+'" value="'+esc(val||"")+'" readonly style="background:#f0f2f5"></div>';
   return '<div class="form-group"><label>'+label+'</label><input type="text" id="'+id+'" value="'+esc(val||"")+'"></div>';
 }
-function fga(label,id,val){return '<div class="form-group full"><label>'+label+'</label><textarea id="'+id+'" rows="3">'+esc(val||"")+'</textarea></div>'}
+function fga(label,id,val){return '<div class="form-group full"><label>'+label+'</label><textarea id="'+id+'" rows="3">'+esc(val||"")+'</textarea></div>'}function fgm(label,id,val){return '<div class="form-group full"><label>'+label+' <span class="hint-inline">Markdown: **fett**, [Link](URL), ![Bild](URL)</span></label>'+
+'<div class="md-toolbar"><button type="button" onclick="mdInsert(\''+id+'\',\'link\')">🔗 Link</button><button type="button" onclick="mdInsert(\''+id+'\',\'image\')">🖼️ Bild</button><button type="button" onclick="mdInsert(\''+id+'\',\'bold\')"><b>B</b></button><button type="button" onclick="mdInsert(\''+id+'\',\'italic\')"><i>I</i></button></div>'+
+'<textarea id="'+id+'" rows="5">'+esc(val||"")+"</textarea></div>"}
 
+window.mdInsert=function(id,type){
+  var ta=document.getElementById(id);
+  var s=ta.selectionStart,e=ta.selectionEnd,sel=ta.value.substring(s,e);
+  var ins="";
+  if(type==="link"){var url=prompt("URL eingeben:","https://");if(!url)return;ins="["+(sel||"Linktext")+"]("+url+")"}
+  else if(type==="image"){var url=prompt("Bild-URL eingeben:","https://");if(!url)return;ins="!["+(sel||"Bildbeschreibung")+"]("+url+")"}
+  else if(type==="bold"){ins="**"+(sel||"Text")+"**"}
+  else if(type==="italic"){ins="*"+(sel||"Text")+"*"}
+  ta.value=ta.value.substring(0,s)+ins+ta.value.substring(e);
+  ta.focus();ta.selectionStart=s;ta.selectionEnd=s+ins.length;
+};
 window.togglePageEdit=function(el){el.nextElementSibling.classList.toggle("open")};
 
 window.savePage=function(slug){

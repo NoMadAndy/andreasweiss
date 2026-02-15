@@ -15,7 +15,7 @@
 <section class="hero">
     <h1>{{ candidate.headline or 'Willkommen' }}</h1>
     {% if candidate.intro_text %}
-    <p>{{ candidate.intro_text }}</p>
+    <div class="md-content">{{ candidate.intro_text | markdown }}</div>
     {% endif %}
 </section>
 
@@ -42,7 +42,7 @@
 {% if candidate.about_text %}
 <section class="about-box">
     <h2>{{ candidate.about_title or 'Über mich' }}</h2>
-    <p>{{ candidate.about_text }}</p>
+    <div class="md-content">{{ candidate.about_text | markdown }}</div>
     {% if candidate.about_name_line %}
     <p class="name-line">{{ candidate.about_name_line }}</p>
     {% endif %}

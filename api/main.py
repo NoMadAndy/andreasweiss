@@ -1,6 +1,6 @@
 """FastAPI backend – Multi-tenant Wahlplattform."""
 
-VERSION = "3.7.0"
+VERSION = "3.8.0"
 
 import csv
 import hashlib
@@ -20,6 +20,10 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
+import markdown as md_lib
+import bleach
+from markupsafe import Markup
+
 from auth import verify_admin, verify_platform_admin
 from db import (
     get_db, init_db, get_candidate, get_candidate_pages,
@@ -37,6 +41,30 @@ app = FastAPI(title="Wahlplattform", docs_url=None, redoc_url=None)
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 templates.env.globals["VERSION"] = VERSION
 templates.env.globals["get_platform_settings"] = get_platform_settings
+
+# ── Markdown filter ───────────────────────────────────────────
+_MD = md_lib.Markdown(extensions=["nl2br", "sane_lists", "smarty"])
+_BLEACH_TAGS = [
+    "p", "br", "a", "img", "strong", "em", "b", "i",
+    "ul", "ol", "li", "h1", "h2", "h3", "h4", "h5", "h6",
+    "blockquote", "code", "pre", "hr", "div", "span",
+]
+_BLEACH_ATTRS = {
+    "a": ["href", "title", "target", "rel"],
+    "img": ["src", "alt", "title", "width", "height"],
+}
+
+def _markdown_filter(text: str) -> Markup:
+    if not text:
+        return Markup("")
+    _MD.reset()
+    html = _MD.convert(text)
+    clean = bleach.clean(html, tags=_BLEACH_TAGS, attributes=_BLEACH_ATTRS)
+    # Auto-add target=_blank to links
+    clean = clean.replace("<a ", '<a target="_blank" rel="noopener" ')
+    return Markup(clean)
+
+templates.env.filters["markdown"] = _markdown_filter
 
 
 @app.on_event("startup")
