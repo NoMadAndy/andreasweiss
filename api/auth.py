@@ -1,5 +1,6 @@
 """Auth module: per-candidate and platform-level Basic Auth."""
 
+import logging
 import os
 import secrets
 
@@ -7,6 +8,8 @@ from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from db import get_db
+
+log = logging.getLogger("uvicorn.error")
 
 security = HTTPBasic(auto_error=False)
 
@@ -16,20 +19,41 @@ PLATFORM_ADMIN_PASS = os.environ.get("PLATFORM_ADMIN_PASS", "changeme")
 
 
 def verify_admin(
+    slug: str,
     request: Request,
     credentials: HTTPBasicCredentials = Depends(security),
 ) -> str:
     """Verify admin credentials against the candidate's stored credentials.
 
-    Reads the candidate slug from the URL path parameters.
+    Args:
+        slug: The candidate slug from the URL path parameter
+        request: The FastAPI request object
+        credentials: HTTP Basic Auth credentials
+
+    Returns:
+        The authenticated username
     """
+    # Debug logging for troubleshooting
+    log.debug(f"verify_admin called for path: {request.url.path}")
+    log.debug(f"credentials present: {credentials is not None}")
+    
     if not credentials:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Zugangsdaten erforderlich")
+        log.warning(f"No credentials provided for admin endpoint")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Zugangsdaten erforderlich",
+            headers={"WWW-Authenticate": "Basic"},
+        )
 
-    slug = request.path_params.get("slug", "")
     if not slug:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Kein Kandidat angegeben")
+        log.error(f"Empty slug provided for path: {request.url.path}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Kein Kandidat angegeben",
+        )
 
+    log.debug(f"Verifying admin credentials for candidate")
+    
     db = get_db()
     try:
         row = db.execute(
@@ -39,7 +63,11 @@ def verify_admin(
         db.close()
 
     if not row:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Kandidat nicht gefunden")
+        log.warning(f"Candidate not found in database")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Kandidat nicht gefunden",
+        )
 
     user_ok = secrets.compare_digest(
         credentials.username.encode("utf-8"), row["admin_user"].encode("utf-8")
@@ -48,10 +76,14 @@ def verify_admin(
         credentials.password.encode("utf-8"), row["admin_pass"].encode("utf-8")
     )
     if not (user_ok and pass_ok):
+        log.warning(f"Invalid credentials provided for admin endpoint")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Ungültige Zugangsdaten",
+            headers={"WWW-Authenticate": "Basic"},
         )
+    
+    log.info(f"Admin authentication successful")
     return credentials.username
 
 
@@ -60,7 +92,11 @@ def verify_platform_admin(
 ) -> str:
     """Verify platform-level admin credentials from environment variables."""
     if not credentials:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Zugangsdaten erforderlich")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Zugangsdaten erforderlich",
+            headers={"WWW-Authenticate": "Basic"},
+        )
 
     user_ok = secrets.compare_digest(
         credentials.username.encode("utf-8"),
@@ -74,5 +110,6 @@ def verify_platform_admin(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Ungültige Plattform-Zugangsdaten",
+            headers={"WWW-Authenticate": "Basic"},
         )
     return credentials.username
