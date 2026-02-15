@@ -559,6 +559,11 @@ a { color: var(--theme-color); }
   margin-top: 0.25rem;
 }
 
+.cta-banner .md-content { font-weight: 600; color: #fff; line-height: 1.4; }
+.cta-banner .md-content a { color: #fff; text-decoration: underline; }
+.cta-banner .md-content.cta-sub { font-weight: 400; opacity: 0.9; font-size: 0.8rem; margin-top: 0.25rem; }
+.cta-banner .md-content img { border-radius: 6px; }
+
 /* ── Feedback Form ────────────────────────────────────────────────── */
 .feedback-form textarea {
   display: block;

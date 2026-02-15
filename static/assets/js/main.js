@@ -140,8 +140,8 @@
           if (b.dataset.option === s.correct) b.classList.add("correct");
           if (b.dataset.option === s.selected && !s.is_correct) b.classList.add("wrong");
         });
-        feedback.textContent = s.explain || (s.is_correct ? "Richtig!" : "Leider falsch.");
-        feedback.className = "quiz-feedback " + (s.is_correct ? "correct" : "wrong");
+        feedback.innerHTML = s.explain_html || s.explain || (s.is_correct ? "Richtig!" : "Leider falsch.");
+        feedback.className = "quiz-feedback md-content " + (s.is_correct ? "correct" : "wrong");
       } catch (e) {}
       return;
     }
@@ -162,6 +162,7 @@
               correct: data.correct_answer,
               is_correct: data.is_correct,
               explain: data.explain,
+              explain_html: data.explain_html,
             }));
 
             buttons.forEach(function (b) {
@@ -169,8 +170,8 @@
               if (b.dataset.option === option && !data.is_correct) b.classList.add("wrong");
             });
 
-            feedback.textContent = data.explain || (data.is_correct ? "Richtig!" : "Leider falsch.");
-            feedback.className = "quiz-feedback " + (data.is_correct ? "correct" : "wrong");
+            feedback.innerHTML = data.explain_html || data.explain || (data.is_correct ? "Richtig!" : "Leider falsch.");
+            feedback.className = "quiz-feedback md-content " + (data.is_correct ? "correct" : "wrong");
           })
           .catch(function () {
             feedback.textContent = "Antwort konnte nicht gesendet werden.";

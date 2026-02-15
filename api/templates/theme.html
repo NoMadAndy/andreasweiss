@@ -32,7 +32,7 @@
 {% if page.quiz_id and page.quiz_question %}
 <section class="section-card quiz-section" data-quiz-id="{{ page.quiz_id }}" data-page="{{ page.slug }}">
     {% if page.quiz_intro %}
-    <p class="intro">{{ page.quiz_intro }}</p>
+    <div class="md-content intro">{{ page.quiz_intro | markdown }}</div>
     {% endif %}
     <h2>❓ {{ page.quiz_question }}</h2>
     <div class="options">

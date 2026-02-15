@@ -21,9 +21,9 @@
 
 {% if candidate.cta_text %}
 <div class="cta-banner">
-    <p>{{ candidate.cta_text }}</p>
+    <div class="md-content">{{ candidate.cta_text | markdown }}</div>
     {% if candidate.cta_sub %}
-    <p class="cta-sub">{{ candidate.cta_sub }}</p>
+    <div class="md-content cta-sub">{{ candidate.cta_sub | markdown }}</div>
     {% endif %}
 </div>
 {% endif %}

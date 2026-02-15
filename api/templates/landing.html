@@ -13,6 +13,8 @@
 .campaign-section{background:linear-gradient(135deg,#1e6fb9 0%,#1a5fa0 100%);color:#fff;border-radius:var(--radius);padding:2rem;margin-bottom:2rem;text-align:center;box-shadow:var(--shadow)}
 .campaign-section h2{font-size:1.3rem;font-weight:700;margin-bottom:.5rem}
 .campaign-section p{font-size:.95rem;opacity:.92;max-width:500px;margin:0 auto}
+.campaign-section .md-content{font-size:.95rem;opacity:.92;max-width:500px;margin:0 auto}
+.campaign-section .md-content a{color:#fff;text-decoration:underline}
 .section-title{font-size:1.15rem;font-weight:700;margin-bottom:1rem;color:var(--text)}
 .candidates-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;margin-bottom:2.5rem}
 .cand-card{display:flex;align-items:center;gap:1rem;background:var(--card-bg);border-radius:var(--radius);padding:1.25rem;text-decoration:none;color:var(--text);box-shadow:var(--shadow);border-left:4px solid var(--cc,#1e6fb9);transition:transform .15s,box-shadow .15s}
@@ -53,7 +55,7 @@
     <section class="landing-hero">
         <h1>{{ settings.hero_headline or 'Willkommen' }}</h1>
         {% if settings.hero_text %}
-        <p class="subtitle">{{ settings.hero_text }}</p>
+        <div class="md-content subtitle">{{ settings.hero_text | markdown }}</div>
         {% endif %}
     </section>
 
@@ -61,7 +63,7 @@
     <section class="campaign-section">
         <h2>{{ settings.campaign_title }}</h2>
         {% if settings.campaign_text %}
-        <p>{{ settings.campaign_text }}</p>
+        <div class="md-content">{{ settings.campaign_text | markdown }}</div>
         {% endif %}
     </section>
     {% endif %}

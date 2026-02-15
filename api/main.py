@@ -1,6 +1,6 @@
 """FastAPI backend – Multi-tenant Wahlplattform."""
 
-VERSION = "3.8.0"
+VERSION = "3.8.1"
 
 import csv
 import hashlib
@@ -1169,6 +1169,7 @@ async def quiz_answer(slug: str, answer: QuizAnswer, request: Request):
         "is_correct": bool(is_correct),
         "correct_answer": correct_answer,
         "explain": explain,
+        "explain_html": str(_markdown_filter(explain)) if explain else "",
         "results": results,
         "total": total,
     }

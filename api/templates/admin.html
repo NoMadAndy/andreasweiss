@@ -236,8 +236,12 @@ tbody tr:hover{background:#fafbfc}
         <div class="form-group full"><label>Einleitungstext <span class="hint-inline">Markdown: **fett**, [Link](URL), ![Bild](URL)</span></label>
           <div class="md-toolbar"><button type="button" onclick="mdInsert('pf-intro','link')">🔗 Link</button><button type="button" onclick="mdInsert('pf-intro','image')">🖼️ Bild</button><button type="button" onclick="mdInsert('pf-intro','bold')"><b>B</b></button><button type="button" onclick="mdInsert('pf-intro','italic')"><i>I</i></button></div>
           <textarea id="pf-intro" rows="4"></textarea></div>
-        <div class="form-group full"><label>CTA-Banner Text</label><input type="text" id="pf-cta"></div>
-        <div class="form-group full"><label>CTA-Banner Untertitel</label><input type="text" id="pf-ctasub"></div>
+        <div class="form-group full"><label>CTA-Banner Text <span class="hint-inline">Markdown: **fett**, [Link](URL), ![Bild](URL)</span></label>
+          <div class="md-toolbar"><button type="button" onclick="mdInsert('pf-cta','link')">🔗 Link</button><button type="button" onclick="mdInsert('pf-cta','image')">🖼️ Bild</button><button type="button" onclick="mdInsert('pf-cta','bold')"><b>B</b></button><button type="button" onclick="mdInsert('pf-cta','italic')"><i>I</i></button></div>
+          <textarea id="pf-cta" rows="3"></textarea></div>
+        <div class="form-group full"><label>CTA-Banner Untertitel <span class="hint-inline">Markdown: **fett**, [Link](URL), ![Bild](URL)</span></label>
+          <div class="md-toolbar"><button type="button" onclick="mdInsert('pf-ctasub','link')">🔗 Link</button><button type="button" onclick="mdInsert('pf-ctasub','image')">🖼️ Bild</button><button type="button" onclick="mdInsert('pf-ctasub','bold')"><b>B</b></button><button type="button" onclick="mdInsert('pf-ctasub','italic')"><i>I</i></button></div>
+          <textarea id="pf-ctasub" rows="2"></textarea></div>
         <div class="form-group full"><label>Über-mich Titel</label><input type="text" id="pf-abtitle"></div>
         <div class="form-group full"><label>Über-mich Text <span class="hint-inline">Markdown: **fett**, [Link](URL), ![Bild](URL)</span></label>
           <div class="md-toolbar"><button type="button" onclick="mdInsert('pf-abtext','link')">🔗 Link</button><button type="button" onclick="mdInsert('pf-abtext','image')">🖼️ Bild</button><button type="button" onclick="mdInsert('pf-abtext','bold')"><b>B</b></button><button type="button" onclick="mdInsert('pf-abtext','italic')"><i>I</i></button></div>
@@ -626,11 +630,11 @@ function renderPagesEditor(pages){
       fgm("Text","pe-txt-"+p.slug,p.text)+
       fg("Poll-ID","pe-pid-"+p.slug,p.poll_id)+fg("Poll-Frage","pe-pq-"+p.slug,p.poll_question)+
       fga("Poll-Optionen (eine pro Zeile)","pe-po-"+p.slug,(p.poll_options||[]).join("\n"))+
-      fg("Quiz-ID","pe-qid-"+p.slug,p.quiz_id)+fg("Quiz-Intro","pe-qi-"+p.slug,p.quiz_intro)+
+      fg("Quiz-ID","pe-qid-"+p.slug,p.quiz_id)+fgm("Quiz-Intro","pe-qi-"+p.slug,p.quiz_intro)+
       fg("Quiz-Frage","pe-qq-"+p.slug,p.quiz_question)+
       fga("Quiz-Optionen (eine pro Zeile)","pe-qo-"+p.slug,(p.quiz_options||[]).join("\n"))+
       fg("Richtige Antwort","pe-qc-"+p.slug,p.quiz_correct)+
-      fga("Erklärung","pe-qe-"+p.slug,p.quiz_explain)+
+      fgm("Erklärung","pe-qe-"+p.slug,p.quiz_explain)+
       '</div>'+
       '<div style="display:flex;gap:.5rem;margin-top:.5rem">'+
       '<button class="save-btn" onclick="savePage(\''+esc(p.slug)+'\')">💾 Seite speichern</button>'+
