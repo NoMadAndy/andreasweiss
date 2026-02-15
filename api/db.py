@@ -208,6 +208,7 @@ def init_db():
             city            TEXT DEFAULT 'unknown',
             region          TEXT DEFAULT 'unknown',
             country         TEXT DEFAULT 'unknown',
+            device_type     TEXT DEFAULT 'unknown',
             uniq_day_hash   TEXT,
             user_agent_short TEXT,
             ref             TEXT
@@ -320,6 +321,9 @@ def init_db():
         "notify_email": "TEXT DEFAULT ''",
         "notify_on_feedback": "INTEGER DEFAULT 0",
         "notify_digest": "INTEGER DEFAULT 0",
+    })
+    _migrate_columns(conn, "visits", {
+        "device_type": "TEXT DEFAULT 'unknown'",
     })
     conn.close()
 

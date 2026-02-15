@@ -403,7 +403,12 @@ td .mini{font-size:.72rem;color:#8e8e93;display:block;margin-top:.1rem}
       </div>
       <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;margin-top:.5rem">
         <button class="btn-save" id="save-smtp">💾 SMTP speichern</button>
+        <button class="btn-save" id="test-smtp" style="background:linear-gradient(135deg,#16a34a,#15803d)">🔍 Verbindung testen</button>
         <span class="save-msg" id="smtp-msg"></span>
+      </div>
+      <div id="smtp-diagnose" style="margin-top:1rem;display:none">
+        <h3 style="font-size:.9rem;margin-bottom:.5rem">Diagnose-Ergebnis</h3>
+        <div id="smtp-diagnose-steps"></div>
       </div>
     </section>
   </div>
@@ -457,13 +462,15 @@ td .mini{font-size:.72rem;color:#8e8e93;display:block;margin-top:.1rem}
             <label for="file-db-import" class="upload-label">📥 Datei wählen</label>
             <div class="upload-status" id="status-db-import"></div>
           </div>
-        </div>
-      </div>
-    </section>
-    <section class="panel">
-      <div class="panel-header"><h2>🌍 GeoIP Datenbank</h2></div>
+        </did="geoip-status" style="margin-bottom:1rem"></div>
       <div class="upload-card" id="uc-geoip" style="max-width:400px">
         <h3>GeoLite2-City Datenbank</h3>
+        <p>GeoLite2-City.mmdb · max. 150 MB · gilt für alle Kandidaten</p>
+        <input type="file" accept=".mmdb" class="upload-input" id="file-geoip">
+        <label for="file-geoip" class="upload-label">🌍 Datei wählen</label>
+        <div class="upload-status" id="status-geoip"></div>
+      </div>
+      <button class="btn-save" id="refresh-geoip" style="margin-top:.75rem;background:linear-gradient(135deg,#6A3FB5,#553098)">🔄 GeoIP-Status aktualisieren</button>GeoLite2-City Datenbank</h3>
         <p>GeoLite2-City.mmdb · max. 150 MB · gilt für alle Kandidaten</p>
         <input type="file" accept=".mmdb" class="upload-input" id="file-geoip">
         <label for="file-geoip" class="upload-label">🌍 Datei wählen</label>
@@ -482,6 +489,7 @@ var STORE_KEY="wahl_platform_admin";
 // ── Tabs ────────────────────────────────────────────────────
 document.querySelectorAll(".tab-btn").forEach(function(b){
   b.addEventListener("click",function(){
+    if(b.dataset.tab==="data") loadGeoIpStatus();
     document.querySelectorAll(".tab-btn").forEach(function(t){t.classList.remove("active")});
     document.querySelectorAll(".tab-panel").forEach(function(p){p.classList.remove("active")});
     b.classList.add("active");
@@ -735,7 +743,70 @@ smtpBtn.addEventListener("click",function(){
     body:JSON.stringify(payload)
   }).then(function(r){if(!r.ok)throw new Error();return r.json()})
   .then(function(){
-    fm(smtpMsg,"✅ SMTP gespeichert!","ok");
+   
+
+// ── SMTP Diagnose ─────────────────────────────────────────────
+var testSmtpBtn=document.getElementById("test-smtp");
+testSmtpBtn.addEventListener("click",function(){
+  testSmtpBtn.disabled=true;testSmtpBtn.textContent="Teste…";smtpMsg.textContent="";
+  var diagPanel=document.getElementById("smtp-diagnose");
+  var diagSteps=document.getElementById("smtp-diagnose-steps");
+  diagPanel.style.display="block";diagSteps.innerHTML='<p style="color:#8e8e93">Verbindung wird geprüft…</p>';
+  fetch("/api/platform/smtp/diagnose",{headers:{"Authorization":auth}})
+  .then(function(r){if(!r.ok)throw new Error();return r.json()})
+  .then(function(d){
+    testSmtpBtn.disabled=false;testSmtpBtn.textContent="🔍 Verbindung testen";
+    diagSteps.innerHTML=d.steps.map(function(s){
+      var icon=s.ok?"✅":"❌";
+      var bg=s.ok?"#f0fff4":"#fff5f5";
+      var border=s.ok?"#16a34a":"#dc2626";
+      return '<div style="display:flex;gap:.75rem;align-items:flex-start;padding:.6rem .8rem;margin:.3rem 0;background:'+bg+';border-left:3px solid '+border+';border-radius:0 6px 6px 0">'+
+        '<span style="font-size:1.1rem">'+icon+'</span>'+
+        '<div><strong style="font-size:.85rem">'+esc(s.step)+'</strong><p style="margin:.2rem 0 0;font-size:.8rem;color:#555">'+esc(s.detail)+'</p></div></div>';
+    }).join("");
+    if(d.ok){fm(smtpMsg,"✅ SMTP-Server erreichbar und bereit!","ok")}
+    else{fm(smtpMsg,"❌ SMTP-Test fehlgeschlagen – Details unten","err")}
+  }).catch(function(){
+    testSmtpBtn.disabled=false;testSmtpBtn.textContent="🔍 Verbindung testen";
+    fm(smtpMsg,"❌ Fehler bei der Diagnose","err");
+    diagSteps.innerHTML='<p style="color:#dc2626">Verbindungstest fehlgeschlagen.</p>';
+  });
+});
+
+// ── GeoIP Status ──────────────────────────────────────────────
+function loadGeoIpStatus(){
+  fetch("/api/platform/geoip/status",{headers:{"Authorization":auth}})
+  .then(function(r){if(!r.ok)throw new Error();return r.json()})
+  .then(function(d){
+    var el=document.getElementById("geoip-status");
+    var statusIcon=d.loaded?"✅":"❌";
+    var statusText=d.loaded?"Geladen & aktiv":"Nicht geladen";
+    var html='<div style="display:flex;gap:1rem;flex-wrap:wrap">';
+    html+='<div style="background:'+(d.loaded?"#f0fff4":"#fff5f5")+';border:1px solid '+(d.loaded?"#bbf7d0":"#fecaca")+';border-radius:8px;padding:.75rem 1rem;min-width:200px">'+
+      '<div style="font-size:1.1rem;font-weight:700">'+statusIcon+' '+statusText+'</div>';
+    if(d.db_exists){
+      html+='<div style="font-size:.82rem;color:#555;margin-top:.3rem">Datei: '+esc(d.db_path)+'</div>';
+      html+='<div style="font-size:.82rem;color:#555">Größe: '+d.db_size_mb+' MB</div>';
+      if(d.build_date)html+='<div style="font-size:.82rem;color:#555">Build: '+esc(d.build_date)+'</div>';
+      if(d.db_type)html+='<div style="font-size:.82rem;color:#555">Typ: '+esc(d.db_type)+'</div>';
+    } else {
+      html+='<div style="font-size:.82rem;color:#dc2626;margin-top:.3rem">Datei nicht gefunden: '+esc(d.db_path)+'</div>';
+    }
+    html+='</div>';
+    if(d.visits_total>0){
+      html+='<div style="background:#f0f8ff;border:1px solid #bfdbfe;border-radius:8px;padding:.75rem 1rem;min-width:200px">'+
+        '<div style="font-size:1.1rem;font-weight:700">📊 Geolokalisierung</div>'+
+        '<div style="font-size:.82rem;color:#555;margin-top:.3rem">'+d.visits_geolocated+' / '+d.visits_total+' Besuche lokalisiert ('+d.geo_rate_pct+'%)</div>'+
+        '<div style="font-size:.82rem;color:#555">'+d.visits_unknown+' ohne Standort</div>'+
+        '<div style="background:#e5e7eb;border-radius:4px;height:8px;margin-top:.5rem;overflow:hidden">'+
+        '<div style="background:#16a34a;height:100%;width:'+d.geo_rate_pct+'%;border-radius:4px"></div></div>'+
+      '</div>';
+    }
+    html+='</div>';
+    el.innerHTML=html;
+  }).catch(function(){});
+}
+document.getElementById("refresh-geoip").addEventListener("click",loadGeoIpStatus); fm(smtpMsg,"✅ SMTP gespeichert!","ok");
     smtpBtn.disabled=false;smtpBtn.textContent="💾 SMTP speichern";
     smtpLoaded=false;
   }).catch(function(){

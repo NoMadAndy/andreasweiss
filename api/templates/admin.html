@@ -224,6 +224,7 @@ tbody tr:hover{background:#fafbfc}
       <section class="panel"><div class="panel-header"><h2>📄 Seiten</h2></div><table id="tbl-pages"><thead><tr><th>Seite</th><th style="text-align:right">Aufrufe</th></tr></thead><tbody></tbody></table></section>
       <section class="panel"><div class="panel-header"><h2>📍 Herkunft</h2></div><div class="tabs" id="geo-tabs"><button class="tab active" data-t="cities">Städte</button><button class="tab" data-t="regions">Regionen</button><button class="tab" data-t="countries">Länder</button></div><table id="tbl-geo"><thead><tr><th>Ort</th><th style="text-align:right">Aufrufe</th></tr></thead><tbody></tbody></table></section>
     </div>
+    <section class="panel"><div class="panel-header"><h2>📱 Gerätetypen</h2></div><div id="devices-chart" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end"></div></section>
     <section class="panel"><div class="panel-header"><h2>🗳️ Umfragen</h2><span class="badge" id="polls-badge"></span></div><div id="polls-content"></div></section>
     <section class="panel"><div class="panel-header"><h2>❓ Quiz</h2><span class="badge" id="quiz-badge"></span></div><div id="quiz-content"></div></section>
     <section class="panel"><div class="panel-header"><h2>💬 Rückmeldungen</h2><span class="badge" id="fb-badge"></span></div><div id="feedback-content"></div></section>
@@ -440,7 +441,7 @@ function renderStats(d){
   document.getElementById("sv-feedback").textContent=num(d.feedback_count);
   document.getElementById("polls-badge").textContent=tp+" Stimmen";
   document.getElementById("quiz-badge").textContent=tq+" Antworten";
-  document.getElementById("fb-badge").textContent=(d.feedback_count||0)+" gesamt";
+  document.getElementById("fb-badge").textContent=(d.feedback_countrenderDevices(d.devices);||0)+" gesamt";
   renderDaily(d.daily);renderPages(d.per_page);renderGeo("cities");
   renderPolls(d.polls,d.content_meta);renderQuizzes(d.quizzes,d.content_meta);renderFeedback(d.feedback);
 }
@@ -476,7 +477,29 @@ function renderGeo(tab){
   var rows=geoData[tab]||[];var tb=document.querySelector("#tbl-geo tbody");
   var key=tab==="cities"?"city":tab==="regions"?"region":"country";
   if(!rows.length){tb.innerHTML='<tr><td colspan="2" class="empty">Keine Daten</td></tr>';return}
-  tb.innerHTML=rows.map(function(r){return '<tr><td>'+esc(r[key])+'</td><td style="text-align:right">'+r.cnt+'</td></tr>'}).join("");
+ 
+
+function renderDevices(devices){
+  var el=document.getElementById("devices-chart");
+  if(!devices||!devices.length){el.innerHTML='<p class="empty">Keine Daten</p>';return}
+  var icons={"mobile":"📱","tablet":"📱","desktop":"🖥️","bot":"🤖","unknown":"❓"};
+  var labels={"mobile":"Mobil","tablet":"Tablet","desktop":"Desktop","bot":"Bot","unknown":"Unbekannt"};
+  var colors={"mobile":"#1e6fb9","tablet":"#6A3FB5","desktop":"#16a34a","bot":"#8e8e93","unknown":"#ccc"};
+  var total=devices.reduce(function(s,d){return s+d.cnt},0);
+  el.innerHTML=devices.map(function(d){
+    var pct=total?Math.round(d.cnt/total*100):0;
+    var dtype=d.device_type||"unknown";
+    var icon=icons[dtype]||"❓";
+    var lbl=labels[dtype]||dtype;
+    var clr=colors[dtype]||"#aaa";
+    return '<div style="text-align:center;min-width:90px;flex:1;max-width:160px">'+
+      '<div style="font-size:2rem">'+icon+'</div>'+
+      '<div style="font-size:1.5rem;font-weight:700;color:'+clr+'">'+pct+'%</div>'+
+      '<div style="font-size:.82rem;color:#6e6e73">'+lbl+'</div>'+
+      '<div style="font-size:.75rem;color:#aaa">'+d.cnt+' Aufrufe</div>'+
+      '</div>';
+  }).join("");
+} tb.innerHTML=rows.map(function(r){return '<tr><td>'+esc(r[key])+'</td><td style="text-align:right">'+r.cnt+'</td></tr>'}).join("");
 }
 
 function renderPolls(polls,meta){

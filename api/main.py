@@ -1,6 +1,6 @@
 """FastAPI backend – Multi-tenant Wahlplattform."""
 
-VERSION = "3.10.0"
+VERSION = "3.11.0"
 
 import csv
 import hashlib
@@ -33,7 +33,7 @@ from db import (
     get_candidate_links, get_all_candidates,
     get_platform_settings, set_platform_settings,
 )
-from geoip import lookup, reload_reader, GEOIP_PATH
+from geoip import lookup, reload_reader, status as geoip_status, GEOIP_PATH
 from mailer import (
     send_feedback_notification,
     send_daily_digest,
@@ -115,6 +115,26 @@ def _day_hash(ip: str) -> str:
 
 def _short_ua(request: Request) -> str:
     return (request.headers.get("User-Agent") or "")[:120]
+
+
+def _device_type(request: Request) -> str:
+    """Classify device from User-Agent: mobile, tablet, desktop, bot."""
+    ua = (request.headers.get("User-Agent") or "").lower()
+    if not ua:
+        return "unknown"
+    # Bots
+    if re.search(r"bot|crawl|spider|slurp|feed|archiv|check|monitor|curl|wget|python|java|go-http", ua):
+        return "bot"
+    # Tablets (check before mobile – some tablets also contain "mobile")
+    if re.search(r"ipad|tablet|kindle|silk|playbook|nexus\s?(7|9|10)", ua):
+        return "tablet"
+    if "android" in ua and "mobile" not in ua:
+        return "tablet"
+    # Mobile
+    if re.search(r"mobile|iphone|ipod|android.*mobile|windows phone|opera\s?mini|opera\s?mobi|blackberry|symbian|webos|iemobile", ua):
+        return "mobile"
+    # Desktop (everything else with a known browser)
+    return "desktop"
 
 
 def _require_candidate(slug: str) -> dict:
@@ -492,6 +512,93 @@ async def platform_put_settings(request: Request, _admin: str = Depends(verify_p
     if filtered:
         set_platform_settings(filtered)
     return {"ok": True, "updated": list(filtered.keys())}
+
+
+@app.get("/api/platform/geoip/status")
+async def platform_geoip_status(_admin: str = Depends(verify_platform_admin)):
+    """Return GeoIP database status information."""
+    info = geoip_status()
+    # Also count how many visits have geo data vs unknown
+    db = get_db()
+    try:
+        total = db.execute("SELECT COUNT(*) c FROM visits").fetchone()["c"]
+        unknown = db.execute(
+            "SELECT COUNT(*) c FROM visits WHERE city='unknown' AND region='unknown' AND country='unknown'"
+        ).fetchone()["c"]
+        geolocated = total - unknown
+    finally:
+        db.close()
+    info["visits_total"] = total
+    info["visits_geolocated"] = geolocated
+    info["visits_unknown"] = unknown
+    info["geo_rate_pct"] = round(geolocated / total * 100, 1) if total else 0
+    return info
+
+
+@app.post("/api/platform/smtp/diagnose")
+async def platform_smtp_diagnose(_admin: str = Depends(verify_platform_admin)):
+    """Test SMTP connection and return detailed diagnostics."""
+    from mailer import _get_smtp_config
+    cfg = _get_smtp_config()
+    if not cfg:
+        return {"ok": False, "steps": [
+            {"step": "Konfiguration", "ok": False, "detail": "SMTP nicht konfiguriert – bitte zuerst Einstellungen speichern."}
+        ]}
+    steps = []
+    # Step 1: Config check
+    steps.append({"step": "Konfiguration", "ok": True,
+                   "detail": f'{cfg["host"]}:{cfg["port"]} | TLS: {"Ja" if cfg["tls"] else "Nein"} | User: {cfg["user"] or "(leer)"} | From: {cfg["from"]}'})
+    # Step 2: DNS resolve
+    import socket
+    try:
+        ip = socket.gethostbyname(cfg["host"])
+        steps.append({"step": "DNS-Auflösung", "ok": True, "detail": f'{cfg["host"]} → {ip}'})
+    except Exception as e:
+        steps.append({"step": "DNS-Auflösung", "ok": False, "detail": f'Host "{cfg["host"]}" nicht auflösbar: {e}'})
+        return {"ok": False, "steps": steps}
+    # Step 3: TCP connect
+    try:
+        sock = socket.create_connection((cfg["host"], cfg["port"]), timeout=10)
+        sock.close()
+        steps.append({"step": "TCP-Verbindung", "ok": True, "detail": f'Port {cfg["port"]} erreichbar'})
+    except Exception as e:
+        steps.append({"step": "TCP-Verbindung", "ok": False, "detail": f'Port {cfg["port"]} nicht erreichbar: {e}'})
+        return {"ok": False, "steps": steps}
+    # Step 4: SMTP handshake + STARTTLS
+    import smtplib, ssl
+    try:
+        srv = smtplib.SMTP(cfg["host"], cfg["port"], timeout=15)
+        code, banner = srv.ehlo()
+        steps.append({"step": "SMTP EHLO", "ok": True, "detail": f'Code {code}'})
+        if cfg["tls"]:
+            ctx = ssl.create_default_context()
+            srv.starttls(context=ctx)
+            srv.ehlo()
+            steps.append({"step": "STARTTLS", "ok": True, "detail": "TLS-Verschlüsselung aktiv"})
+    except Exception as e:
+        steps.append({"step": "SMTP-Handshake", "ok": False, "detail": str(e)})
+        return {"ok": False, "steps": steps}
+    # Step 5: Auth
+    if cfg["user"]:
+        try:
+            srv.login(cfg["user"], cfg["pass"])
+            steps.append({"step": "Authentifizierung", "ok": True, "detail": f'Login als {cfg["user"]} erfolgreich'})
+        except smtplib.SMTPAuthenticationError as e:
+            steps.append({"step": "Authentifizierung", "ok": False, "detail": f'Login fehlgeschlagen: {e.smtp_error.decode("utf-8", errors="replace") if isinstance(e.smtp_error, bytes) else str(e.smtp_error)}'})
+            srv.quit()
+            return {"ok": False, "steps": steps}
+        except Exception as e:
+            steps.append({"step": "Authentifizierung", "ok": False, "detail": str(e)})
+            srv.quit()
+            return {"ok": False, "steps": steps}
+    else:
+        steps.append({"step": "Authentifizierung", "ok": True, "detail": "Kein Login konfiguriert (Open Relay?)"})
+    try:
+        srv.quit()
+    except Exception:
+        pass
+    steps.append({"step": "Verbindungstest", "ok": True, "detail": "SMTP-Server ist bereit zum Senden ✅"})
+    return {"ok": True, "steps": steps}
 
 
 @app.get("/api/platform/export/db")
@@ -1208,10 +1315,10 @@ async def track_visit(slug: str, event: VisitEvent, request: Request):
     db = get_db()
     try:
         db.execute(
-            "INSERT INTO visits (candidate_slug, page, city, region, country, uniq_day_hash, user_agent_short, ref) "
-            "VALUES (?,?,?,?,?,?,?,?)",
+            "INSERT INTO visits (candidate_slug, page, city, region, country, device_type, uniq_day_hash, user_agent_short, ref) "
+            "VALUES (?,?,?,?,?,?,?,?,?)",
             (slug, event.page, geo["city"], geo["region"], geo["country"],
-             _day_hash(ip), _short_ua(request), event.ref),
+             _device_type(request), _day_hash(ip), _short_ua(request), event.ref),
         )
         db.commit()
     finally:
@@ -1398,6 +1505,11 @@ async def admin_stats(
             (slug, delta),
         ).fetchall()]
 
+        devices = [dict(r) for r in db.execute(
+            f"SELECT device_type, COUNT(*) as cnt FROM visits WHERE {cond} AND ts >= datetime('now', ?) GROUP BY device_type ORDER BY cnt DESC",
+            (slug, delta),
+        ).fetchall()]
+
         daily = [dict(r) for r in db.execute(
             f"SELECT date(ts) as day, COUNT(*) as total, COUNT(DISTINCT uniq_day_hash) as uniq "
             f"FROM visits WHERE {cond} AND ts >= datetime('now', ?) GROUP BY date(ts) ORDER BY day",
@@ -1448,6 +1560,7 @@ async def admin_stats(
         "top_cities": top_cities,
         "top_regions": top_regions,
         "top_countries": top_countries,
+        "devices": devices,
         "daily": daily,
         "polls": polls,
         "quizzes": quizzes,
@@ -1793,13 +1906,13 @@ async def admin_export(
     try:
         if type == "visits":
             rows = db.execute(
-                f"SELECT ts, page, city, region, country, user_agent_short, ref FROM visits WHERE {cond} AND ts >= datetime('now', ?) ORDER BY ts DESC",
+                f"SELECT ts, page, city, region, country, device_type, user_agent_short, ref FROM visits WHERE {cond} AND ts >= datetime('now', ?) ORDER BY ts DESC",
                 (slug, delta),
             ).fetchall()
             writer = csv.writer(output)
-            writer.writerow(["ts", "page", "city", "region", "country", "user_agent", "ref"])
+            writer.writerow(["ts", "page", "city", "region", "country", "device_type", "user_agent", "ref"])
             for r in rows:
-                writer.writerow([r["ts"], r["page"], r["city"], r["region"], r["country"], r["user_agent_short"], r["ref"]])
+                writer.writerow([r["ts"], r["page"], r["city"], r["region"], r["country"], r["device_type"], r["user_agent_short"], r["ref"]])
         elif type == "poll":
             rows = db.execute(
                 f"SELECT ts, page, poll_id, option, city, region, country FROM poll_votes WHERE {cond} AND ts >= datetime('now', ?) ORDER BY ts DESC",
@@ -1851,7 +1964,7 @@ async def export_candidate_json(
     links = get_candidate_links(slug)
     db = get_db()
     try:
-        visits = [dict(r) for r in db.execute(
+        visits = [dict(r) for r in db.execute(device_type, 
             "SELECT ts, page, city, region, country, user_agent_short, ref FROM visits WHERE candidate_slug=? ORDER BY ts DESC",
             (slug,),
         ).fetchall()]
@@ -1993,10 +2106,10 @@ async def import_candidate_json(
         analytics = payload.get("analytics", {})
         for v in analytics.get("visits", []):
             db.execute(
-                "INSERT INTO visits (candidate_slug, ts, page, city, region, country, user_agent_short, ref) "
-                "VALUES (?,?,?,?,?,?,?,?)",
+                "INSERT INTO visits (candidate_slug, ts, page, city, region, country, device_type, user_agent_short, ref) "
+                "VALUES (?,?,?,?,?,?,?,?,?)",
                 (slug, v.get("ts"), v.get("page",""), v.get("city",""), v.get("region",""),
-                 v.get("country",""), v.get("user_agent_short",""), v.get("ref","")),
+                 v.get("country",""), v.get("device_type","unknown"), v.get("user_agent_short",""), v.get("ref","")),
             )
             imported["visits"] += 1
         for pv in analytics.get("poll_votes", []):
