@@ -744,7 +744,14 @@ smtpBtn.addEventListener("click",function(){
     body:JSON.stringify(payload)
   }).then(function(r){if(!r.ok)throw new Error();return r.json()})
   .then(function(){
-   
+    fm(smtpMsg,"✅ SMTP gespeichert!","ok");
+    smtpBtn.disabled=false;smtpBtn.textContent="💾 SMTP speichern";
+    smtpLoaded=false;
+  }).catch(function(){
+    fm(smtpMsg,"❌ Fehler beim Speichern","err");
+    smtpBtn.disabled=false;smtpBtn.textContent="💾 SMTP speichern";
+  });
+});
 
 // ── SMTP Diagnose ─────────────────────────────────────────────
 var testSmtpBtn=document.getElementById("test-smtp");
@@ -807,14 +814,7 @@ function loadGeoIpStatus(){
     el.innerHTML=html;
   }).catch(function(){});
 }
-document.getElementById("refresh-geoip").addEventListener("click",loadGeoIpStatus); fm(smtpMsg,"✅ SMTP gespeichert!","ok");
-    smtpBtn.disabled=false;smtpBtn.textContent="💾 SMTP speichern";
-    smtpLoaded=false;
-  }).catch(function(){
-    fm(smtpMsg,"❌ Fehler beim Speichern","err");
-    smtpBtn.disabled=false;smtpBtn.textContent="💾 SMTP speichern";
-  });
-});
+document.getElementById("refresh-geoip").addEventListener("click",loadGeoIpStatus);
 
 // ── Markdown Insert Helper ────────────────────────────────────
 function mdInsert(id,type){
