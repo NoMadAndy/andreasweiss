@@ -2,7 +2,6 @@
 
 import logging
 import os
-import re
 import secrets
 
 from fastapi import Depends, HTTPException, Request, status
@@ -20,40 +19,34 @@ PLATFORM_ADMIN_PASS = os.environ.get("PLATFORM_ADMIN_PASS", "changeme")
 
 
 def verify_admin(
+    slug: str,
     request: Request,
     credentials: HTTPBasicCredentials = Depends(security),
 ) -> str:
     """Verify admin credentials against the candidate's stored credentials.
 
-    Reads the candidate slug from the URL path parameters or extracts it from the URL path.
+    Args:
+        slug: The candidate slug from the URL path parameter
+        request: The FastAPI request object
+        credentials: HTTP Basic Auth credentials
+    
+    Returns:
+        The authenticated username
     """
     # Debug logging for troubleshooting
-    log.debug(f"verify_admin called for path: {request.url.path}")
-    log.debug(f"path_params: {request.path_params}")
+    log.debug(f"verify_admin called for slug: {slug}, path: {request.url.path}")
     log.debug(f"credentials present: {credentials is not None}")
     
     if not credentials:
-        log.warning(f"No credentials provided for path: {request.url.path}")
+        log.warning(f"No credentials provided for slug: {slug}, path: {request.url.path}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Zugangsdaten erforderlich",
             headers={"WWW-Authenticate": "Basic"},
         )
 
-    # Try to get slug from path_params first
-    slug = request.path_params.get("slug", "")
-    
-    # Fallback: extract slug from URL path if path_params is empty
     if not slug:
-        log.debug("Slug not in path_params, attempting to extract from URL path")
-        # Pattern: /api/{slug}/admin/...
-        match = re.search(r'/api/([^/]+)/admin/', request.url.path)
-        if match:
-            slug = match.group(1)
-            log.debug(f"Extracted slug from URL: {slug}")
-    
-    if not slug:
-        log.error(f"Could not determine slug for path: {request.url.path}")
+        log.error(f"Empty slug provided for path: {request.url.path}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Kein Kandidat angegeben",
