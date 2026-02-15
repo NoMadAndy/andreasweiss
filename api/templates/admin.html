@@ -396,10 +396,15 @@ passInput.addEventListener("keydown",function(e){if(e.key==="Enter")doLogin()});
 userInput.addEventListener("keydown",function(e){if(e.key==="Enter")passInput.focus()});
 
 var saved=localStorage.getItem("wahl_admin_"+SLUG);
-if(saved){auth=saved;apiFetch("/admin/stats?period=30").then(function(d){
-  document.getElementById("login-view").hidden=true;
-  document.getElementById("dashboard-view").hidden=false;renderStats(d);
-}).catch(function(){localStorage.removeItem("wahl_admin_"+SLUG);auth=""});}
+if(saved){auth=saved;
+  fetch(API+"/admin/stats?period=30",{headers:{"Authorization":auth}}).then(function(r){
+    if(!r.ok){localStorage.removeItem("wahl_admin_"+SLUG);auth="";return}
+    return r.json().then(function(d){
+      document.getElementById("login-view").hidden=true;
+      document.getElementById("dashboard-view").hidden=false;renderStats(d);
+    });
+  }).catch(function(err){console.error("Auto-login error:",err)});
+}
 
 document.getElementById("logout-btn").addEventListener("click",function(e){
   e.preventDefault();localStorage.removeItem("wahl_admin_"+SLUG);auth="";
