@@ -29,16 +29,16 @@ def verify_admin(
         slug: The candidate slug from the URL path parameter
         request: The FastAPI request object
         credentials: HTTP Basic Auth credentials
-    
+
     Returns:
         The authenticated username
     """
     # Debug logging for troubleshooting
-    log.debug(f"verify_admin called for slug: {slug}, path: {request.url.path}")
+    log.debug(f"verify_admin called for path: {request.url.path}")
     log.debug(f"credentials present: {credentials is not None}")
     
     if not credentials:
-        log.warning(f"No credentials provided for slug: {slug}, path: {request.url.path}")
+        log.warning(f"No credentials provided for admin endpoint")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Zugangsdaten erforderlich",
@@ -52,7 +52,7 @@ def verify_admin(
             detail="Kein Kandidat angegeben",
         )
 
-    log.debug(f"Verifying admin credentials for slug: {slug}")
+    log.debug(f"Verifying admin credentials for candidate")
     
     db = get_db()
     try:
@@ -63,7 +63,7 @@ def verify_admin(
         db.close()
 
     if not row:
-        log.warning(f"Candidate not found: {slug}")
+        log.warning(f"Candidate not found in database")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Kandidat nicht gefunden",
@@ -76,14 +76,14 @@ def verify_admin(
         credentials.password.encode("utf-8"), row["admin_pass"].encode("utf-8")
     )
     if not (user_ok and pass_ok):
-        log.warning(f"Invalid credentials for slug: {slug}, user: {credentials.username}")
+        log.warning(f"Invalid credentials provided for admin endpoint")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Ungültige Zugangsdaten",
             headers={"WWW-Authenticate": "Basic"},
         )
     
-    log.info(f"Admin authentication successful for slug: {slug}, user: {credentials.username}")
+    log.info(f"Admin authentication successful")
     return credentials.username
 
 
