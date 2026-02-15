@@ -1,12 +1,16 @@
 """Auth module: per-candidate and platform-level Basic Auth."""
 
+import logging
 import os
+import re
 import secrets
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from db import get_db
+
+log = logging.getLogger("uvicorn.error")
 
 security = HTTPBasic(auto_error=False)
 
@@ -21,15 +25,42 @@ def verify_admin(
 ) -> str:
     """Verify admin credentials against the candidate's stored credentials.
 
-    Reads the candidate slug from the URL path parameters.
+    Reads the candidate slug from the URL path parameters or extracts it from the URL path.
     """
+    # Debug logging for troubleshooting
+    log.debug(f"verify_admin called for path: {request.url.path}")
+    log.debug(f"path_params: {request.path_params}")
+    log.debug(f"credentials present: {credentials is not None}")
+    
     if not credentials:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Zugangsdaten erforderlich")
+        log.warning(f"No credentials provided for path: {request.url.path}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Zugangsdaten erforderlich",
+            headers={"WWW-Authenticate": "Basic"},
+        )
 
+    # Try to get slug from path_params first
     slug = request.path_params.get("slug", "")
+    
+    # Fallback: extract slug from URL path if path_params is empty
     if not slug:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Kein Kandidat angegeben")
+        log.debug("Slug not in path_params, attempting to extract from URL path")
+        # Pattern: /api/{slug}/admin/...
+        match = re.search(r'/api/([^/]+)/admin/', request.url.path)
+        if match:
+            slug = match.group(1)
+            log.debug(f"Extracted slug from URL: {slug}")
+    
+    if not slug:
+        log.error(f"Could not determine slug for path: {request.url.path}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Kein Kandidat angegeben",
+        )
 
+    log.debug(f"Verifying admin credentials for slug: {slug}")
+    
     db = get_db()
     try:
         row = db.execute(
@@ -39,6 +70,7 @@ def verify_admin(
         db.close()
 
     if not row:
+        log.warning(f"Candidate not found: {slug}")
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Kandidat nicht gefunden")
 
     user_ok = secrets.compare_digest(
@@ -48,10 +80,14 @@ def verify_admin(
         credentials.password.encode("utf-8"), row["admin_pass"].encode("utf-8")
     )
     if not (user_ok and pass_ok):
+        log.warning(f"Invalid credentials for slug: {slug}, user: {credentials.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Ungültige Zugangsdaten",
+            headers={"WWW-Authenticate": "Basic"},
         )
+    
+    log.info(f"Admin authentication successful for slug: {slug}, user: {credentials.username}")
     return credentials.username
 
 
