@@ -462,7 +462,14 @@ td .mini{font-size:.72rem;color:#8e8e93;display:block;margin-top:.1rem}
             <label for="file-db-import" class="upload-label">📥 Datei wählen</label>
             <div class="upload-status" id="status-db-import"></div>
           </div>
-        </did="geoip-status" style="margin-bottom:1rem"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- GeoIP Section -->
+    <section class="panel">
+      <div class="panel-header"><h2>🌍 GeoIP Datenbank</h2></div>
+      <div id="geoip-status" style="margin-bottom:1rem"></div>
       <div class="upload-card" id="uc-geoip" style="max-width:400px">
         <h3>GeoLite2-City Datenbank</h3>
         <p>GeoLite2-City.mmdb · max. 150 MB · gilt für alle Kandidaten</p>
@@ -470,12 +477,7 @@ td .mini{font-size:.72rem;color:#8e8e93;display:block;margin-top:.1rem}
         <label for="file-geoip" class="upload-label">🌍 Datei wählen</label>
         <div class="upload-status" id="status-geoip"></div>
       </div>
-      <button class="btn-save" id="refresh-geoip" style="margin-top:.75rem;background:linear-gradient(135deg,#6A3FB5,#553098)">🔄 GeoIP-Status aktualisieren</button>GeoLite2-City Datenbank</h3>
-        <p>GeoLite2-City.mmdb · max. 150 MB · gilt für alle Kandidaten</p>
-        <input type="file" accept=".mmdb" class="upload-input" id="file-geoip">
-        <label for="file-geoip" class="upload-label">🌍 Datei wählen</label>
-        <div class="upload-status" id="status-geoip"></div>
-      </div>
+      <button class="btn-save" id="refresh-geoip" style="margin-top:.75rem;background:linear-gradient(135deg,#6A3FB5,#553098)">🔄 GeoIP-Status aktualisieren</button>
     </section>
   </div>
 </div>

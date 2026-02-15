@@ -441,7 +441,8 @@ function renderStats(d){
   document.getElementById("sv-feedback").textContent=num(d.feedback_count);
   document.getElementById("polls-badge").textContent=tp+" Stimmen";
   document.getElementById("quiz-badge").textContent=tq+" Antworten";
-  document.getElementById("fb-badge").textContent=(d.feedback_countrenderDevices(d.devices);||0)+" gesamt";
+  document.getElementById("fb-badge").textContent=(d.feedback_count||0)+" gesamt";
+  renderDevices(d.devices);
   renderDaily(d.daily);renderPages(d.per_page);renderGeo("cities");
   renderPolls(d.polls,d.content_meta);renderQuizzes(d.quizzes,d.content_meta);renderFeedback(d.feedback);
 }
