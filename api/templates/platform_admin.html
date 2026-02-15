@@ -762,7 +762,7 @@ testSmtpBtn.addEventListener("click",function(){
   var diagPanel=document.getElementById("smtp-diagnose");
   var diagSteps=document.getElementById("smtp-diagnose-steps");
   diagPanel.style.display="block";diagSteps.innerHTML='<p style="color:#8e8e93">Verbindung wird geprüft…</p>';
-  fetch("/api/platform/smtp/diagnose",{headers:{"Authorization":auth}})
+  fetch("/api/platform/smtp/diagnose",{method:"POST",headers:{"Authorization":auth}})
   .then(function(r){if(!r.ok)throw new Error();return r.json()})
   .then(function(d){
     testSmtpBtn.disabled=false;testSmtpBtn.textContent="🔍 Verbindung testen";
