@@ -42,7 +42,6 @@ def verify_admin(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Zugangsdaten erforderlich",
-            headers={"WWW-Authenticate": "Basic"},
         )
 
     if not slug:
@@ -80,7 +79,6 @@ def verify_admin(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Ungültige Zugangsdaten",
-            headers={"WWW-Authenticate": "Basic"},
         )
     
     log.info(f"Admin authentication successful")
@@ -95,7 +93,6 @@ def verify_platform_admin(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Zugangsdaten erforderlich",
-            headers={"WWW-Authenticate": "Basic"},
         )
 
     user_ok = secrets.compare_digest(
@@ -110,6 +107,5 @@ def verify_platform_admin(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Ungültige Plattform-Zugangsdaten",
-            headers={"WWW-Authenticate": "Basic"},
         )
     return credentials.username

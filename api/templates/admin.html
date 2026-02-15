@@ -590,6 +590,7 @@ window.doExportCandidate=function(){
 
 // ── Content Loading & Editing ───────────────────────────────
 function loadContent(){
+  if(!auth)return;
   if(contentData)return;
   apiFetch("/admin/content").then(function(d){contentData=d;renderProfileForm(d);renderPagesEditor(d.pages);renderLinksEditor(d.links)}).catch(function(){});
 }
@@ -831,6 +832,7 @@ function esc(s){var d=document.createElement("div");d.textContent=String(s);retu
 // ── Notification Settings ───────────────────────────────────
 var ntfLoaded=false;
 function loadNotifications(){
+  if(!auth)return;
   if(ntfLoaded)return;
   apiFetch("/admin/notifications").then(function(d){
     ntfLoaded=true;
