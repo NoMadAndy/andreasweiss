@@ -177,6 +177,7 @@ td .mini{font-size:.72rem;color:#8e8e93;display:block;margin-top:.1rem}
     <button class="tab-btn" data-tab="candidates">👥 Kandidaten</button>
     <button class="tab-btn" data-tab="settings">⚙️ Startseite</button>
     <button class="tab-btn" data-tab="wahlinfo">ℹ️ Wahlinfo</button>
+    <button class="tab-btn" data-tab="smtp">📧 E-Mail</button>
     <button class="tab-btn" data-tab="data">🗄️ Daten</button>
   </div>
 
@@ -359,6 +360,54 @@ td .mini{font-size:.72rem;color:#8e8e93;display:block;margin-top:.1rem}
     </section>
   </div>
 
+  <!-- ═══ Tab: SMTP ═══ -->
+  <div class="tab-panel" id="tab-smtp">
+    <section class="panel">
+      <div class="panel-header"><h2>📧 E-Mail / SMTP-Einstellungen</h2></div>
+      <p style="font-size:.85rem;color:var(--text-secondary);margin-bottom:1rem">
+        SMTP-Server zum Versenden von E-Mail-Benachrichtigungen. Kandidaten können in ihrem Admin-Bereich Benachrichtigungen aktivieren.
+      </p>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="s-smtp-host">SMTP-Server</label>
+          <input type="text" id="s-smtp-host" placeholder="z.B. smtp.gmail.com">
+        </div>
+        <div class="form-group">
+          <label for="s-smtp-port">Port</label>
+          <input type="number" id="s-smtp-port" placeholder="587" value="587" style="max-width:120px">
+        </div>
+        <div class="form-group">
+          <label for="s-smtp-user">Benutzername</label>
+          <input type="text" id="s-smtp-user" placeholder="user@gmail.com" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="s-smtp-pass">Passwort / App-Passwort</label>
+          <input type="password" id="s-smtp-pass" placeholder="••••••••" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label for="s-smtp-from">Absender-Adresse (From)</label>
+          <input type="email" id="s-smtp-from" placeholder="wahlplattform@example.de">
+          <p class="hint">Leer = gleich wie Benutzername</p>
+        </div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;margin-top:1.5rem">
+            <input type="checkbox" id="s-smtp-tls" checked style="width:18px;height:18px;accent-color:var(--primary)">
+            STARTTLS verwenden
+          </label>
+        </div>
+        <div class="form-group">
+          <label for="s-digest-hour">Tagesberichte versenden um (Uhr)</label>
+          <input type="number" id="s-digest-hour" min="0" max="23" value="7" style="max-width:80px">
+          <p class="hint">0–23, z.B. 7 = 07:00 Uhr morgens</p>
+        </div>
+      </div>
+      <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;margin-top:.5rem">
+        <button class="btn-save" id="save-smtp">💾 SMTP speichern</button>
+        <span class="save-msg" id="smtp-msg"></span>
+      </div>
+    </section>
+  </div>
+
   <!-- ═══ Tab: Data ═══ -->
   <div class="tab-panel" id="tab-data">
     <!-- Analytics Section -->
@@ -439,6 +488,7 @@ document.querySelectorAll(".tab-btn").forEach(function(b){
     document.getElementById("tab-"+b.dataset.tab).classList.add("active");
     // Load settings when switching to that tab
     if(b.dataset.tab==="settings"||b.dataset.tab==="wahlinfo") loadSettings();
+    if(b.dataset.tab==="smtp") loadSmtp();
   });
 });
 
@@ -647,6 +697,50 @@ wahlinfoBtn.addEventListener("click",function(){
   }).catch(function(){
     fm(wahlinfoMsg,"❌ Fehler beim Speichern","err");
     wahlinfoBtn.disabled=false;wahlinfoBtn.textContent="Speichern";
+  });
+});
+
+// ── SMTP Settings ─────────────────────────────────────────────
+var smtpLoaded=false;
+function loadSmtp(){
+  if(smtpLoaded)return;
+  apiFetch("/platform/settings").then(function(d){
+    smtpLoaded=true;
+    document.getElementById("s-smtp-host").value=d.smtp_host||"";
+    document.getElementById("s-smtp-port").value=d.smtp_port||"587";
+    document.getElementById("s-smtp-user").value=d.smtp_user||"";
+    document.getElementById("s-smtp-pass").value=d.smtp_pass||"";
+    document.getElementById("s-smtp-from").value=d.smtp_from||"";
+    document.getElementById("s-smtp-tls").checked=(d.smtp_tls!=="0");
+    document.getElementById("s-digest-hour").value=d.digest_hour||"7";
+  }).catch(function(){});
+}
+
+var smtpBtn=document.getElementById("save-smtp");
+var smtpMsg=document.getElementById("smtp-msg");
+smtpBtn.addEventListener("click",function(){
+  var payload={
+    smtp_host:document.getElementById("s-smtp-host").value.trim(),
+    smtp_port:document.getElementById("s-smtp-port").value,
+    smtp_user:document.getElementById("s-smtp-user").value.trim(),
+    smtp_pass:document.getElementById("s-smtp-pass").value,
+    smtp_from:document.getElementById("s-smtp-from").value.trim(),
+    smtp_tls:document.getElementById("s-smtp-tls").checked?"1":"0",
+    digest_hour:document.getElementById("s-digest-hour").value,
+  };
+  smtpBtn.disabled=true;smtpBtn.textContent="Speichern…";smtpMsg.textContent="";
+  fetch("/api/platform/settings",{
+    method:"PUT",
+    headers:{"Content-Type":"application/json","Authorization":auth},
+    body:JSON.stringify(payload)
+  }).then(function(r){if(!r.ok)throw new Error();return r.json()})
+  .then(function(){
+    fm(smtpMsg,"✅ SMTP gespeichert!","ok");
+    smtpBtn.disabled=false;smtpBtn.textContent="💾 SMTP speichern";
+    smtpLoaded=false;
+  }).catch(function(){
+    fm(smtpMsg,"❌ Fehler beim Speichern","err");
+    smtpBtn.disabled=false;smtpBtn.textContent="💾 SMTP speichern";
   });
 });
 

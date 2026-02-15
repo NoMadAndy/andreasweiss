@@ -138,7 +138,30 @@ def init_db():
             datenschutz_html TEXT DEFAULT '',
             admin_user      TEXT NOT NULL,
             admin_pass      TEXT NOT NULL,
+            notify_email    TEXT DEFAULT '',
+            notify_on_feedback INTEGER DEFAULT 0,
+            notify_digest   INTEGER DEFAULT 0,
             created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        -- ── Password Reset Tokens ───────────────────────────────
+        CREATE TABLE IF NOT EXISTS password_resets (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            candidate_slug  TEXT NOT NULL,
+            token           TEXT NOT NULL UNIQUE,
+            expires_at      TEXT NOT NULL,
+            used            INTEGER DEFAULT 0,
+            created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+            FOREIGN KEY (candidate_slug) REFERENCES candidates(slug) ON DELETE CASCADE
+        );
+
+        -- ── Digest Tracking ─────────────────────────────────────
+        CREATE TABLE IF NOT EXISTS digest_log (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            candidate_slug  TEXT NOT NULL,
+            sent_at         TEXT NOT NULL DEFAULT (datetime('now')),
+            feedback_count  INTEGER DEFAULT 0,
+            visits_count    INTEGER DEFAULT 0
         );
 
         -- ── Candidate Pages (themes with polls/quizzes) ─────────
@@ -245,6 +268,9 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_fb_cand       ON feedback(candidate_slug);
         CREATE INDEX IF NOT EXISTS idx_fb_page       ON feedback(page);
         CREATE INDEX IF NOT EXISTS idx_fb_ts         ON feedback(ts);
+        CREATE INDEX IF NOT EXISTS idx_reset_token    ON password_resets(token);
+        CREATE INDEX IF NOT EXISTS idx_reset_slug     ON password_resets(candidate_slug);
+        CREATE INDEX IF NOT EXISTS idx_digest_slug    ON digest_log(candidate_slug);
 
         -- ── Platform Settings ───────────────────────────────────
         CREATE TABLE IF NOT EXISTS platform_settings (
@@ -266,6 +292,13 @@ def init_db():
         "wahlinfo_enabled": "0",
         "wahlinfo_title": "Wahlinfo",
         "wahlinfo_content": _DEFAULT_WAHLINFO,
+        "smtp_host": "",
+        "smtp_port": "587",
+        "smtp_user": "",
+        "smtp_pass": "",
+        "smtp_from": "",
+        "smtp_tls": "1",
+        "digest_hour": "7",
     }
     existing = conn.execute("SELECT COUNT(*) c FROM platform_settings").fetchone()[0]
     if existing == 0:
@@ -282,10 +315,26 @@ def init_db():
                 (k, v),
             )
         conn.commit()
+    # ── Migrations: add new columns to existing tables ────────
+    _migrate_columns(conn, "candidates", {
+        "notify_email": "TEXT DEFAULT ''",
+        "notify_on_feedback": "INTEGER DEFAULT 0",
+        "notify_digest": "INTEGER DEFAULT 0",
+    })
     conn.close()
 
 
 # ── Helpers ────────────────────────────────────────────────────────
+
+def _migrate_columns(conn: sqlite3.Connection, table: str, columns: dict):
+    """Add missing columns to an existing table (safe ALTER TABLE)."""
+    existing = {r[1] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+    for col, typedef in columns.items():
+        if col not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {typedef}")
+    conn.commit()
+
+
 def get_platform_settings() -> dict:
     """Return all platform settings as a dict."""
     db = get_db()

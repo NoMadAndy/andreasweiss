@@ -1,17 +1,20 @@
 """FastAPI backend – Multi-tenant Wahlplattform."""
 
-VERSION = "3.9.0"
+VERSION = "3.10.0"
 
 import csv
 import hashlib
 import io
 import json
+import logging
 import os
 import re
-from datetime import date, datetime
+import secrets
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
+import asyncio
 import shutil
 import tempfile
 
@@ -31,6 +34,13 @@ from db import (
     get_platform_settings, set_platform_settings,
 )
 from geoip import lookup, reload_reader, GEOIP_PATH
+from mailer import (
+    send_feedback_notification,
+    send_daily_digest,
+    send_password_reset_email,
+)
+
+log = logging.getLogger("uvicorn.error")
 
 # ── Config ────────────────────────────────────────────────────────
 ANALYTICS_SALT = os.environ.get("ANALYTICS_SALT", "default-salt-change-me")
@@ -72,6 +82,12 @@ def startup():
     init_db()
 
 
+@app.on_event("startup")
+async def start_digest_scheduler():
+    """Start background task for daily digest emails."""
+    asyncio.create_task(_digest_loop())
+
+
 # ── Helpers ───────────────────────────────────────────────────────
 def _client_ip(request: Request) -> str:
     forwarded = request.headers.get("X-Forwarded-For")
@@ -98,6 +114,118 @@ def _require_candidate(slug: str) -> dict:
     if not c:
         raise HTTPException(404, "Kandidat nicht gefunden")
     return c
+
+
+def _base_url(request: Request) -> str:
+    """Derive base URL from request (scheme + host)."""
+    scheme = request.headers.get("X-Forwarded-Proto", "https")
+    host = request.headers.get("Host", "localhost")
+    return f"{scheme}://{host}"
+
+
+def _maybe_notify_feedback(slug: str, page: str, message: str, city: str, request: Request):
+    """Send instant email notification if candidate has it enabled."""
+    cand = get_candidate(slug)
+    if not cand:
+        return
+    if not cand.get("notify_on_feedback") or not cand.get("notify_email"):
+        return
+    try:
+        send_feedback_notification(
+            candidate_name=cand["name"], slug=slug,
+            email=cand["notify_email"], page=page,
+            message=message, city=city,
+            base_url=_base_url(request),
+        )
+    except Exception as e:
+        log.error("Feedback-Notification fehlgeschlagen: %s", e)
+
+
+async def _digest_loop():
+    """Background loop: check every 10 min if it's time to send daily digests."""
+    while True:
+        try:
+            settings = get_platform_settings()
+            digest_hour = int(settings.get("digest_hour", "7"))
+            now = datetime.now()
+            if now.hour == digest_hour:
+                _send_pending_digests()
+            await asyncio.sleep(600)  # Check every 10 minutes
+        except Exception as e:
+            log.error("Digest-Loop Fehler: %s", e)
+            await asyncio.sleep(600)
+
+
+def _send_pending_digests():
+    """Send daily digest to all candidates who have it enabled."""
+    db = get_db()
+    try:
+        candidates = db.execute(
+            "SELECT slug, name, notify_email FROM candidates "
+            "WHERE notify_digest = 1 AND notify_email != ''"
+        ).fetchall()
+        for cand in candidates:
+            slug = cand["slug"]
+            # Check if already sent today
+            today = date.today().isoformat()
+            already = db.execute(
+                "SELECT 1 FROM digest_log WHERE candidate_slug=? AND sent_at >= ?",
+                (slug, today),
+            ).fetchone()
+            if already:
+                continue
+            # Gather stats for last 24h
+            since = (datetime.now() - timedelta(hours=24)).isoformat()
+            visits = db.execute(
+                "SELECT COUNT(*) c FROM visits WHERE candidate_slug=? AND ts >= ?",
+                (slug, since),
+            ).fetchone()["c"]
+            fb_count = db.execute(
+                "SELECT COUNT(*) c FROM feedback WHERE candidate_slug=? AND ts >= ?",
+                (slug, since),
+            ).fetchone()["c"]
+            polls = db.execute(
+                "SELECT COUNT(*) c FROM poll_votes WHERE candidate_slug=? AND ts >= ?",
+                (slug, since),
+            ).fetchone()["c"]
+            quiz = db.execute(
+                "SELECT COUNT(*) c FROM quiz_answers WHERE candidate_slug=? AND ts >= ?",
+                (slug, since),
+            ).fetchone()["c"]
+            feedback_rows = db.execute(
+                "SELECT ts, page, message FROM feedback WHERE candidate_slug=? AND ts >= ? ORDER BY ts DESC LIMIT 10",
+                (slug, since),
+            ).fetchall()
+            new_fb = [dict(r) for r in feedback_rows]
+
+            # Only send if there's any activity
+            if visits + fb_count + polls + quiz == 0:
+                # Log anyway to prevent re-check
+                db.execute(
+                    "INSERT INTO digest_log (candidate_slug, feedback_count, visits_count) VALUES (?,?,?)",
+                    (slug, 0, 0),
+                )
+                db.commit()
+                continue
+
+            try:
+                send_daily_digest(
+                    candidate_name=cand["name"], slug=slug,
+                    email=cand["notify_email"],
+                    visits=visits, feedback_count=fb_count,
+                    poll_votes=polls, quiz_answers=quiz,
+                    new_feedback=new_fb,
+                )
+            except Exception as e:
+                log.error("Digest für %s fehlgeschlagen: %s", slug, e)
+
+            db.execute(
+                "INSERT INTO digest_log (candidate_slug, feedback_count, visits_count) VALUES (?,?,?)",
+                (slug, fb_count, visits),
+            )
+            db.commit()
+    finally:
+        db.close()
 
 
 def _quiz_correct_map(slug: str) -> dict[str, str]:
@@ -348,6 +476,8 @@ async def platform_put_settings(request: Request, _admin: str = Depends(verify_p
         "campaign_title", "campaign_text", "footer_text",
         "show_candidates", "redirect_url",
         "wahlinfo_enabled", "wahlinfo_title", "wahlinfo_content",
+        "smtp_host", "smtp_port", "smtp_user", "smtp_pass",
+        "smtp_from", "smtp_tls", "digest_hour",
     }
     filtered = {k: str(v) for k, v in data.items() if k in allowed_keys}
     if filtered:
@@ -1210,6 +1340,8 @@ async def submit_feedback(slug: str, fb: FeedbackMessage, request: Request):
         db.commit()
     finally:
         db.close()
+    # ── Instant notification ──
+    _maybe_notify_feedback(slug, fb.page, fb.message, geo["city"], request)
     return {"ok": True}
 
 
@@ -1365,6 +1497,170 @@ async def update_credentials(slug: str, data: CredentialsUpdate, _admin: str = D
     finally:
         db.close()
     return {"ok": True, "updated": list(updates.keys())}
+
+
+# ── Notification Settings ────────────────────────────────────────
+
+class NotificationSettings(BaseModel):
+    notify_email: Optional[str] = None
+    notify_on_feedback: Optional[int] = None
+    notify_digest: Optional[int] = None
+
+
+@app.get("/api/{slug}/admin/notifications")
+async def get_notifications(slug: str, _admin: str = Depends(verify_admin)):
+    """Get notification settings for a candidate."""
+    cand = _require_candidate(slug)
+    return {
+        "notify_email": cand.get("notify_email", ""),
+        "notify_on_feedback": cand.get("notify_on_feedback", 0),
+        "notify_digest": cand.get("notify_digest", 0),
+    }
+
+
+@app.put("/api/{slug}/admin/notifications")
+async def update_notifications(slug: str, data: NotificationSettings, _admin: str = Depends(verify_admin)):
+    """Update notification settings."""
+    _require_candidate(slug)
+    updates = {}
+    if data.notify_email is not None:
+        updates["notify_email"] = data.notify_email
+    if data.notify_on_feedback is not None:
+        updates["notify_on_feedback"] = 1 if data.notify_on_feedback else 0
+    if data.notify_digest is not None:
+        updates["notify_digest"] = 1 if data.notify_digest else 0
+    if not updates:
+        return {"ok": True}
+    set_clause = ", ".join(f"{k}=?" for k in updates)
+    values = list(updates.values()) + [slug]
+    db = get_db()
+    try:
+        db.execute(f"UPDATE candidates SET {set_clause} WHERE slug=?", values)
+        db.commit()
+    finally:
+        db.close()
+    return {"ok": True, "updated": list(updates.keys())}
+
+
+@app.post("/api/{slug}/admin/test-email")
+async def test_email(slug: str, _admin: str = Depends(verify_admin)):
+    """Send a test email to verify SMTP configuration."""
+    from mailer import send_email
+    cand = _require_candidate(slug)
+    email = cand.get("notify_email", "")
+    if not email:
+        raise HTTPException(400, "Keine E-Mail-Adresse hinterlegt")
+    ok = send_email(
+        email,
+        f"✅ Test – {cand['name']}",
+        f"""<div style="font-family:-apple-system,sans-serif;max-width:500px;margin:0 auto">
+        <h2 style="color:#16a34a">✅ E-Mail-Test erfolgreich!</h2>
+        <p>Die E-Mail-Benachrichtigung für <strong>{cand['name']}</strong> funktioniert.</p>
+        <p style="color:#6e6e73;font-size:.85rem">Du erhältst diese E-Mail, weil du einen Test im Admin-Bereich ausgelöst hast.</p>
+        </div>""",
+    )
+    if ok:
+        return {"ok": True, "message": "Test-E-Mail gesendet"}
+    raise HTTPException(500, "E-Mail konnte nicht gesendet werden. Prüfe SMTP-Einstellungen im Platform-Admin.")
+
+
+# ── Password Reset ───────────────────────────────────────────────
+
+class PasswordResetRequest(BaseModel):
+    email: str = Field(..., min_length=3)
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_pass: str = Field(..., min_length=6, max_length=100)
+
+
+@app.post("/api/{slug}/forgot-password")
+async def forgot_password(slug: str, data: PasswordResetRequest, request: Request):
+    """Request a password reset. Sends email if candidate has matching notify_email."""
+    cand = _require_candidate(slug)
+    # Always return success to prevent email enumeration
+    stored_email = (cand.get("notify_email") or "").strip().lower()
+    submitted_email = data.email.strip().lower()
+    if not stored_email or stored_email != submitted_email:
+        return {"ok": True, "message": "Falls die E-Mail-Adresse hinterlegt ist, erhältst du einen Reset-Link."}
+
+    # Generate token
+    token = secrets.token_urlsafe(48)
+    expires = (datetime.now() + timedelta(hours=1)).isoformat()
+
+    db = get_db()
+    try:
+        # Invalidate old tokens
+        db.execute(
+            "UPDATE password_resets SET used=1 WHERE candidate_slug=? AND used=0",
+            (slug,),
+        )
+        db.execute(
+            "INSERT INTO password_resets (candidate_slug, token, expires_at) VALUES (?,?,?)",
+            (slug, token, expires),
+        )
+        db.commit()
+    finally:
+        db.close()
+
+    reset_url = f"{_base_url(request)}/{slug}/reset-password?token={token}"
+    try:
+        send_password_reset_email(cand["name"], stored_email, reset_url)
+    except Exception as e:
+        log.error("Reset-E-Mail fehlgeschlagen: %s", e)
+
+    return {"ok": True, "message": "Falls die E-Mail-Adresse hinterlegt ist, erhältst du einen Reset-Link."}
+
+
+@app.get("/{slug}/reset-password", response_class=HTMLResponse)
+async def reset_password_page(slug: str, token: str, request: Request):
+    """Show password reset form."""
+    cand = _require_candidate(slug)
+    # Validate token
+    db = get_db()
+    try:
+        row = db.execute(
+            "SELECT * FROM password_resets WHERE token=? AND candidate_slug=? AND used=0",
+            (token, slug),
+        ).fetchone()
+    finally:
+        db.close()
+
+    valid = False
+    if row and row["expires_at"] > datetime.now().isoformat():
+        valid = True
+
+    return templates.TemplateResponse("reset_password.html", {
+        "request": request,
+        "candidate": cand,
+        "token": token,
+        "valid": valid,
+    })
+
+
+@app.post("/api/{slug}/reset-password")
+async def reset_password(slug: str, data: PasswordResetConfirm):
+    """Reset password using a valid token."""
+    _require_candidate(slug)
+    db = get_db()
+    try:
+        row = db.execute(
+            "SELECT * FROM password_resets WHERE token=? AND candidate_slug=? AND used=0",
+            (data.token, slug),
+        ).fetchone()
+        if not row:
+            raise HTTPException(400, "Ungültiger oder abgelaufener Token")
+        if row["expires_at"] < datetime.now().isoformat():
+            raise HTTPException(400, "Token abgelaufen")
+        # Mark token as used
+        db.execute("UPDATE password_resets SET used=1 WHERE id=?", (row["id"],))
+        # Update password
+        db.execute("UPDATE candidates SET admin_pass=? WHERE slug=?", (data.new_pass, slug))
+        db.commit()
+    finally:
+        db.close()
+    return {"ok": True, "message": "Passwort wurde zurückgesetzt"}
 
 
 @app.post("/api/{slug}/admin/pages")

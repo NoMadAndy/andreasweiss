@@ -171,6 +171,13 @@ tbody tr:hover{background:#fafbfc}
     <input type="password" id="pass" placeholder="Passwort" autocomplete="current-password">
     <button id="login-btn">Anmelden</button>
     <p id="login-error" class="error" hidden>Ungültige Zugangsdaten</p>
+    <p style="text-align:center;margin-top:1rem"><a href="#" id="forgot-link" style="color:#1e6fb9;font-size:.82rem;text-decoration:none">Passwort vergessen?</a></p>
+    <div id="forgot-view" hidden style="margin-top:1rem;padding-top:1rem;border-top:1px solid #e0e0e0">
+      <p style="font-size:.82rem;color:#6e6e73;margin-bottom:.75rem">Gib deine hinterlegte E-Mail-Adresse ein, um einen Reset-Link zu erhalten.</p>
+      <input type="email" id="forgot-email" placeholder="E-Mail-Adresse" style="display:block;width:100%;padding:.85rem 1rem;border:1.5px solid #e0e0e0;border-radius:10px;font-size:1rem;margin-bottom:.75rem">
+      <button id="forgot-btn" style="display:block;width:100%;padding:.85rem;background:linear-gradient(135deg,#D97706,#b45309);color:#fff;border:none;border-radius:10px;font-size:1rem;cursor:pointer;font-weight:600">🔑 Reset-Link anfordern</button>
+      <p id="forgot-msg" class="save-msg" style="text-align:center;margin-top:.5rem"></p>
+    </div>
   </div>
 </div>
 
@@ -200,6 +207,7 @@ tbody tr:hover{background:#fafbfc}
     <button class="main-tab" data-pane="pages">📄 Seiten</button>
     <button class="main-tab" data-pane="links">🔗 Links</button>
     <button class="main-tab" data-pane="files">📤 Dateien</button>
+    <button class="main-tab" data-pane="settings">⚙️ Einstellungen</button>
   </div>
 
   <!-- ═══ TAB: Statistiken ═══ -->
@@ -323,6 +331,39 @@ tbody tr:hover{background:#fafbfc}
       </div>
     </section>
   </div>
+
+  <!-- ═══ TAB: Einstellungen ═══ -->
+  <div class="tab-pane" id="pane-settings">
+    <section class="panel">
+      <div class="panel-header"><h2>🔔 E-Mail-Benachrichtigungen</h2></div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>E-Mail-Adresse für Benachrichtigungen</label>
+          <input type="email" id="ntf-email" placeholder="deine@email.de">
+          <p class="hint">An diese Adresse werden Benachrichtigungen und der Passwort-Reset gesendet.</p>
+        </div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+            <input type="checkbox" id="ntf-feedback" style="width:18px;height:18px;accent-color:#1e6fb9">
+            Sofort bei neuer Rückmeldung
+          </label>
+          <p class="hint">Du erhältst sofort eine E-Mail, wenn jemand eine Nachricht hinterlässt.</p>
+        </div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+            <input type="checkbox" id="ntf-digest" style="width:18px;height:18px;accent-color:#1e6fb9">
+            Tägliche Zusammenfassung
+          </label>
+          <p class="hint">Täglicher Bericht mit Besuchen, Rückmeldungen, Umfragen und Quiz.</p>
+        </div>
+      </div>
+      <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;margin-top:.5rem">
+        <button class="save-btn" id="save-notify">💾 Benachrichtigungen speichern</button>
+        <button class="export-btn" id="test-email-btn" style="font-family:inherit">📧 Test-E-Mail senden</button>
+        <span class="save-msg" id="notify-msg"></span>
+      </div>
+    </section>
+  </div>
 </div>
 
 <script>
@@ -342,6 +383,7 @@ document.querySelector(".main-tabs").addEventListener("click",function(e){
   t.classList.add("active");
   document.getElementById("pane-"+t.dataset.pane).classList.add("active");
   if(t.dataset.pane==="content"||t.dataset.pane==="pages"||t.dataset.pane==="links"){loadContent()}
+  if(t.dataset.pane==="settings"){loadNotifications()}
 });
 
 // ── Login ───────────────────────────────────────────────────
@@ -761,6 +803,72 @@ setupUpload("file-portrait","/admin/upload/portrait","status-portrait","prev-por
 setupUpload("file-logo","/admin/upload/logo","status-logo","prev-logo");
 
 function esc(s){var d=document.createElement("div");d.textContent=String(s);return d.innerHTML}
+
+// ── Notification Settings ───────────────────────────────────
+var ntfLoaded=false;
+function loadNotifications(){
+  if(ntfLoaded)return;
+  apiFetch("/admin/notifications").then(function(d){
+    ntfLoaded=true;
+    document.getElementById("ntf-email").value=d.notify_email||"";
+    document.getElementById("ntf-feedback").checked=!!d.notify_on_feedback;
+    document.getElementById("ntf-digest").checked=!!d.notify_digest;
+  }).catch(function(){});
+}
+
+document.getElementById("save-notify").addEventListener("click",function(){
+  var btn=this,msg=document.getElementById("notify-msg");
+  btn.disabled=true;msg.textContent="";
+  var data={
+    notify_email:document.getElementById("ntf-email").value.trim(),
+    notify_on_feedback:document.getElementById("ntf-feedback").checked?1:0,
+    notify_digest:document.getElementById("ntf-digest").checked?1:0
+  };
+  apiFetch("/admin/notifications",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)})
+  .then(function(){msg.className="save-msg ok";msg.textContent="✅ Gespeichert";btn.disabled=false;ntfLoaded=false;
+    setTimeout(function(){msg.textContent=""},3000)})
+  .catch(function(){msg.className="save-msg err";msg.textContent="❌ Fehler beim Speichern";btn.disabled=false});
+});
+
+document.getElementById("test-email-btn").addEventListener("click",function(){
+  var btn=this,msg=document.getElementById("notify-msg");
+  var email=document.getElementById("ntf-email").value.trim();
+  if(!email){msg.className="save-msg err";msg.textContent="❌ Erst E-Mail-Adresse eingeben und speichern";return}
+  btn.disabled=true;msg.textContent="Sende…";
+  apiFetch("/admin/test-email",{method:"POST"})
+  .then(function(){msg.className="save-msg ok";msg.textContent="✅ Test-E-Mail gesendet!";btn.disabled=false;
+    setTimeout(function(){msg.textContent=""},4000)})
+  .catch(function(e){msg.className="save-msg err";msg.textContent="❌ Fehler – SMTP prüfen (Platform-Admin)";btn.disabled=false});
+});
+
+// ── Forgot Password ─────────────────────────────────────────
+document.getElementById("forgot-link").addEventListener("click",function(e){
+  e.preventDefault();
+  var fv=document.getElementById("forgot-view");
+  fv.hidden=!fv.hidden;
+});
+
+document.getElementById("forgot-btn").addEventListener("click",function(){
+  var btn=this,msg=document.getElementById("forgot-msg");
+  var email=document.getElementById("forgot-email").value.trim();
+  if(!email){msg.className="save-msg err";msg.textContent="❌ E-Mail-Adresse eingeben";return}
+  btn.disabled=true;msg.textContent="";
+  fetch("/api/"+SLUG+"/forgot-password",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({email:email})
+  })
+  .then(function(r){return r.json()})
+  .then(function(d){
+    msg.className="save-msg ok";
+    msg.textContent="✅ Falls die Adresse hinterlegt ist, erhältst du einen Reset-Link per E-Mail.";
+    btn.disabled=false;
+  })
+  .catch(function(){
+    msg.className="save-msg err";msg.textContent="❌ Fehler";btn.disabled=false;
+  });
+});
+
 })();
 </script>
 </body>
