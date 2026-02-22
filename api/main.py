@@ -2173,6 +2173,9 @@ class FlyerRequest(BaseModel):
     cta_sub: str = ""
     website_url: str = ""
 
+    # Page-specific flyer (empty = general flyer with all topics)
+    page_slug: str = ""
+
     # Toggle elements
     show_portrait: bool = True
     show_logo: bool = True
@@ -2198,24 +2201,53 @@ async def generate_flyer(slug: str, body: FlyerRequest, request: Request, _admin
     candidate = _require_candidate(slug)
     pages = get_candidate_pages(slug)
 
-    # Build website URL
-    website_url = body.website_url or f"{_base_url(request)}/{slug}/"
+    # Page-specific flyer: find the matching page
+    target_page = None
+    if body.page_slug:
+        for p in pages:
+            if p.get("slug") == body.page_slug:
+                target_page = p
+                break
+        if not target_page:
+            raise HTTPException(404, f"Seite '{body.page_slug}' nicht gefunden")
 
-    # Build topic list from candidate pages
-    topics = []
-    for p in pages:
-        topics.append({
-            "title": p.get("tile_title") or p.get("theme", ""),
-            "color": p.get("color", candidate.get("theme_color", "#1E6FB9")),
-        })
+    # Build website URL – point to subpage when page-specific
+    if body.website_url:
+        website_url = body.website_url
+    elif target_page:
+        website_url = f"{_base_url(request)}/{slug}/{target_page['slug']}/"
+    else:
+        website_url = f"{_base_url(request)}/{slug}/"
+
+    # Build topic list and content defaults based on mode
+    if target_page:
+        # Page-specific: single topic tile, page headline/text as defaults
+        topics = [{
+            "title": target_page.get("tile_title") or target_page.get("theme", ""),
+            "color": target_page.get("color", candidate.get("theme_color", "#1E6FB9")),
+        }]
+        default_headline = target_page.get("headline", "")
+        default_intro = target_page.get("text", "")
+        theme_color = target_page.get("color") or candidate.get("theme_color", "#1E6FB9")
+    else:
+        # General flyer: all topics
+        topics = []
+        for p in pages:
+            topics.append({
+                "title": p.get("tile_title") or p.get("theme", ""),
+                "color": p.get("color", candidate.get("theme_color", "#1E6FB9")),
+            })
+        default_headline = candidate.get("headline", "")
+        default_intro = candidate.get("intro_text", "")
+        theme_color = candidate.get("theme_color", "#1E6FB9")
 
     config = FlyerConfig(
         candidate_name=candidate.get("name", ""),
         party=candidate.get("party", ""),
         tagline=candidate.get("tagline", ""),
         election_date=candidate.get("election_date", ""),
-        headline=body.headline or candidate.get("headline", ""),
-        intro_text=body.intro_text or candidate.get("intro_text", ""),
+        headline=body.headline or default_headline,
+        intro_text=body.intro_text or default_intro,
         cta_text=body.cta_text or candidate.get("cta_text", ""),
         cta_sub=body.cta_sub or candidate.get("cta_sub", ""),
         website_url=website_url,
@@ -2232,11 +2264,12 @@ async def generate_flyer(slug: str, body: FlyerRequest, request: Request, _admin
         topics=topics,
         page_size=body.page_size,
         orientation=body.orientation,
-        theme_color=candidate.get("theme_color", "#1E6FB9"),
+        theme_color=theme_color,
     )
 
     pdf_bytes = generate_flyer_pdf(slug, config)
-    filename = f"flyer_{slug}_{body.page_size}.pdf"
+    page_suffix = f"_{body.page_slug}" if body.page_slug else ""
+    filename = f"flyer_{slug}{page_suffix}_{body.page_size}.pdf"
 
     return Response(
         content=pdf_bytes,
