@@ -2162,6 +2162,89 @@ async def import_candidate_json(
     return {"ok": True, "imported": imported}
 
 
+# ── Campaign Document (Flyer) ─────────────────────────────────────
+
+class FlyerRequest(BaseModel):
+    """Configurable options for the campaign document PDF."""
+    # Content overrides (empty = use candidate profile defaults)
+    headline: str = ""
+    intro_text: str = ""
+    cta_text: str = ""
+    cta_sub: str = ""
+    website_url: str = ""
+
+    # Toggle elements
+    show_portrait: bool = True
+    show_logo: bool = True
+    show_qr: bool = True
+    show_headline: bool = True
+    show_intro: bool = True
+    show_cta: bool = True
+    show_election_date: bool = True
+    show_tagline: bool = True
+    show_website_url: bool = True
+    show_topics: bool = True
+
+    # Layout
+    page_size: str = "a4"          # a4, a5, a6
+    orientation: str = "portrait"  # portrait, landscape
+
+
+@app.post("/api/{slug}/admin/flyer")
+async def generate_flyer(slug: str, body: FlyerRequest, request: Request, _admin: str = Depends(verify_admin)):
+    """Generate a printable campaign PDF document."""
+    from flyer import FlyerConfig, generate_flyer_pdf
+
+    candidate = _require_candidate(slug)
+    pages = get_candidate_pages(slug)
+
+    # Build website URL
+    website_url = body.website_url or f"{_base_url(request)}/{slug}/"
+
+    # Build topic list from candidate pages
+    topics = []
+    for p in pages:
+        topics.append({
+            "title": p.get("tile_title") or p.get("theme", ""),
+            "color": p.get("color", candidate.get("theme_color", "#1E6FB9")),
+        })
+
+    config = FlyerConfig(
+        candidate_name=candidate.get("name", ""),
+        party=candidate.get("party", ""),
+        tagline=candidate.get("tagline", ""),
+        election_date=candidate.get("election_date", ""),
+        headline=body.headline or candidate.get("headline", ""),
+        intro_text=body.intro_text or candidate.get("intro_text", ""),
+        cta_text=body.cta_text or candidate.get("cta_text", ""),
+        cta_sub=body.cta_sub or candidate.get("cta_sub", ""),
+        website_url=website_url,
+        show_portrait=body.show_portrait,
+        show_logo=body.show_logo,
+        show_qr=body.show_qr,
+        show_headline=body.show_headline,
+        show_intro=body.show_intro,
+        show_cta=body.show_cta,
+        show_election_date=body.show_election_date,
+        show_tagline=body.show_tagline,
+        show_website_url=body.show_website_url,
+        show_topics=body.show_topics,
+        topics=topics,
+        page_size=body.page_size,
+        orientation=body.orientation,
+        theme_color=candidate.get("theme_color", "#1E6FB9"),
+    )
+
+    pdf_bytes = generate_flyer_pdf(slug, config)
+    filename = f"flyer_{slug}_{body.page_size}.pdf"
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 # ── File Uploads ──────────────────────────────────────────────────
 MAX_IMAGE_SIZE = 5 * 1024 * 1024
 MAX_GEOIP_SIZE = 150 * 1024 * 1024

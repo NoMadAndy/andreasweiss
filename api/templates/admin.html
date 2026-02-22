@@ -207,6 +207,7 @@ tbody tr:hover{background:#fafbfc}
     <button class="main-tab" data-pane="pages">📄 Seiten</button>
     <button class="main-tab" data-pane="links">🔗 Links</button>
     <button class="main-tab" data-pane="files">📤 Dateien</button>
+    <button class="main-tab" data-pane="flyer">📄 Flyer</button>
     <button class="main-tab" data-pane="settings">⚙️ Einstellungen</button>
   </div>
 
@@ -329,6 +330,95 @@ tbody tr:hover{background:#fafbfc}
           <label for="file-logo" class="upload-label">🏷️ Logo wählen</label>
           <div class="upload-status" id="status-logo"></div>
         </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ═══ TAB: Flyer ═══ -->
+  <div class="tab-pane" id="pane-flyer">
+    <section class="panel">
+      <div class="panel-header"><h2>📄 Kampagnen-Flyer erstellen</h2></div>
+      <p style="font-size:.88rem;color:#6e6e73;margin-bottom:1.25rem">Erstelle ein druckbares PDF-Dokument zum Verteilen an Haushalte. Alle Inhalte werden aus deinem Profil geladen und können hier angepasst werden.</p>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Seitenformat</label>
+          <select id="fly-size">
+            <option value="a4" selected>DIN A4</option>
+            <option value="a5">DIN A5</option>
+            <option value="a6">DIN A6</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Ausrichtung</label>
+          <select id="fly-orientation">
+            <option value="portrait" selected>Hochformat</option>
+            <option value="landscape">Querformat</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Headline <span class="hint-inline">(leer = aus Profil)</span></label>
+          <input type="text" id="fly-headline" placeholder="z. B. Wofür ich stehe.">
+        </div>
+        <div class="form-group full">
+          <label>Einleitungstext <span class="hint-inline">(leer = aus Profil)</span></label>
+          <textarea id="fly-intro" rows="3" placeholder="Kurzer Text, der neugierig macht..."></textarea>
+        </div>
+        <div class="form-group full">
+          <label>CTA-Text <span class="hint-inline">(leer = aus Profil)</span></label>
+          <input type="text" id="fly-cta" placeholder="z. B. Ich würde mich über 3 Stimmen freuen!">
+        </div>
+        <div class="form-group full">
+          <label>CTA-Untertitel <span class="hint-inline">(leer = aus Profil)</span></label>
+          <input type="text" id="fly-ctasub" placeholder="z. B. Kommunalwahl Rohrbach · 08.03.2026">
+        </div>
+        <div class="form-group full">
+          <label>Website-URL <span class="hint-inline">(leer = automatisch)</span></label>
+          <input type="text" id="fly-url" placeholder="https://...">
+          <p class="hint">Die URL wird als QR-Code auf dem Flyer dargestellt.</p>
+        </div>
+      </div>
+
+      <h3 style="font-size:.95rem;font-weight:700;margin:1.25rem 0 .75rem;color:#3a3a3c">Sichtbare Elemente</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.5rem .75rem;margin-bottom:1.25rem">
+        <label style="display:flex;align-items:center;gap:.5rem;font-size:.88rem;cursor:pointer">
+          <input type="checkbox" id="fly-show-portrait" checked style="width:16px;height:16px;accent-color:#1e6fb9"> Kandidaten-Portrait
+        </label>
+        <label style="display:flex;align-items:center;gap:.5rem;font-size:.88rem;cursor:pointer">
+          <input type="checkbox" id="fly-show-logo" checked style="width:16px;height:16px;accent-color:#1e6fb9"> Partei-Logo
+        </label>
+        <label style="display:flex;align-items:center;gap:.5rem;font-size:.88rem;cursor:pointer">
+          <input type="checkbox" id="fly-show-qr" checked style="width:16px;height:16px;accent-color:#1e6fb9"> QR-Code
+        </label>
+        <label style="display:flex;align-items:center;gap:.5rem;font-size:.88rem;cursor:pointer">
+          <input type="checkbox" id="fly-show-headline" checked style="width:16px;height:16px;accent-color:#1e6fb9"> Headline
+        </label>
+        <label style="display:flex;align-items:center;gap:.5rem;font-size:.88rem;cursor:pointer">
+          <input type="checkbox" id="fly-show-intro" checked style="width:16px;height:16px;accent-color:#1e6fb9"> Einleitungstext
+        </label>
+        <label style="display:flex;align-items:center;gap:.5rem;font-size:.88rem;cursor:pointer">
+          <input type="checkbox" id="fly-show-cta" checked style="width:16px;height:16px;accent-color:#1e6fb9"> CTA-Banner
+        </label>
+        <label style="display:flex;align-items:center;gap:.5rem;font-size:.88rem;cursor:pointer">
+          <input type="checkbox" id="fly-show-date" checked style="width:16px;height:16px;accent-color:#1e6fb9"> Wahltag-Badge
+        </label>
+        <label style="display:flex;align-items:center;gap:.5rem;font-size:.88rem;cursor:pointer">
+          <input type="checkbox" id="fly-show-tagline" checked style="width:16px;height:16px;accent-color:#1e6fb9"> Tagline
+        </label>
+        <label style="display:flex;align-items:center;gap:.5rem;font-size:.88rem;cursor:pointer">
+          <input type="checkbox" id="fly-show-url" checked style="width:16px;height:16px;accent-color:#1e6fb9"> Website-URL-Text
+        </label>
+        <label style="display:flex;align-items:center;gap:.5rem;font-size:.88rem;cursor:pointer">
+          <input type="checkbox" id="fly-show-topics" checked style="width:16px;height:16px;accent-color:#1e6fb9"> Themen-Kacheln
+        </label>
+      </div>
+
+      <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
+        <button class="save-btn" id="fly-generate" style="background:linear-gradient(135deg,#1e6fb9,#1a5fa0)">📄 PDF erstellen & herunterladen</button>
+        <span class="save-msg" id="fly-msg"></span>
       </div>
     </section>
   </div>
@@ -897,6 +987,55 @@ document.getElementById("forgot-btn").addEventListener("click",function(){
   })
   .catch(function(){
     msg.className="save-msg err";msg.textContent="❌ Fehler";btn.disabled=false;
+  });
+});
+
+// ── Flyer Generator ──────────────────────────────────────────
+document.getElementById("fly-generate").addEventListener("click",function(){
+  var btn=this,msg=document.getElementById("fly-msg");
+  btn.disabled=true;msg.textContent="";msg.className="save-msg";
+  msg.textContent="PDF wird erstellt...";
+  var body={
+    headline:document.getElementById("fly-headline").value,
+    intro_text:document.getElementById("fly-intro").value,
+    cta_text:document.getElementById("fly-cta").value,
+    cta_sub:document.getElementById("fly-ctasub").value,
+    website_url:document.getElementById("fly-url").value,
+    page_size:document.getElementById("fly-size").value,
+    orientation:document.getElementById("fly-orientation").value,
+    show_portrait:document.getElementById("fly-show-portrait").checked,
+    show_logo:document.getElementById("fly-show-logo").checked,
+    show_qr:document.getElementById("fly-show-qr").checked,
+    show_headline:document.getElementById("fly-show-headline").checked,
+    show_intro:document.getElementById("fly-show-intro").checked,
+    show_cta:document.getElementById("fly-show-cta").checked,
+    show_election_date:document.getElementById("fly-show-date").checked,
+    show_tagline:document.getElementById("fly-show-tagline").checked,
+    show_website_url:document.getElementById("fly-show-url").checked,
+    show_topics:document.getElementById("fly-show-topics").checked
+  };
+  fetch(API+"/admin/flyer",{
+    method:"POST",
+    headers:{"Authorization":auth,"Content-Type":"application/json"},
+    body:JSON.stringify(body)
+  })
+  .then(function(r){
+    if(!r.ok)return r.json().then(function(d){throw new Error(d.detail||"Fehler")});
+    return r.blob();
+  })
+  .then(function(blob){
+    var u=URL.createObjectURL(blob);
+    var a=document.createElement("a");
+    a.href=u;
+    a.download="flyer_"+SLUG+"_"+body.page_size+".pdf";
+    a.click();
+    URL.revokeObjectURL(u);
+    msg.className="save-msg ok";msg.textContent="PDF erstellt!";
+    btn.disabled=false;
+  })
+  .catch(function(e){
+    msg.className="save-msg err";msg.textContent="Fehler: "+e.message;
+    btn.disabled=false;
   });
 });
 
