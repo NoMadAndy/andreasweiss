@@ -18,11 +18,13 @@ services:
       - db_data:/data
       - ./data/geoip:/data/geoip
       - ./data/uploads:/data/uploads
+      - ./static/assets/img:/static/assets/img:ro
     environment:
       - ANALYTICS_SALT=${ANALYTICS_SALT:-change-this-salt}
       - DB_PATH=/data/wahl2026.db
       - GEOIP_PATH=/data/geoip/GeoLite2-City.mmdb
       - UPLOAD_BASE=/data/uploads
+      - STATIC_DIR=/static/assets/img
       - PLATFORM_ADMIN_USER=${ADMIN_USER:-admin}
       - PLATFORM_ADMIN_PASS=${ADMIN_PASS:-changeme}
     restart: unless-stopped
