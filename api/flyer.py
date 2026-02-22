@@ -25,8 +25,6 @@ from reportlab.lib.pagesizes import A4, A5, A6, landscape
 from reportlab.lib.units import mm, cm
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
-from svglib.svglib import svg2rlg
-from reportlab.graphics import renderPDF
 
 UPLOAD_BASE = os.environ.get("UPLOAD_BASE", "/data/uploads")
 
@@ -244,22 +242,11 @@ def generate_flyer_pdf(slug: str, config: FlyerConfig) -> bytes:
                 logo_size = 22 * mm * scale
                 logo_x = page_w - margin - logo_size
                 logo_y = header_top - logo_size
-                if logo_file.endswith(".svg"):
-                    drawing = svg2rlg(logo_file)
-                    if drawing:
-                        sx = logo_size / drawing.width
-                        sy = logo_size / drawing.height
-                        s = min(sx, sy)
-                        drawing.width = drawing.minWidth() * s
-                        drawing.height = drawing.height * s
-                        drawing.scale(s, s)
-                        renderPDF.draw(drawing, c, logo_x, logo_y)
-                else:
-                    c.drawImage(
-                        logo_file, logo_x, logo_y,
-                        width=logo_size, height=logo_size,
-                        preserveAspectRatio=True, mask="auto",
-                    )
+                c.drawImage(
+                    logo_file, logo_x, logo_y,
+                    width=logo_size, height=logo_size,
+                    preserveAspectRatio=True, mask="auto",
+                )
             except Exception:
                 pass
 
