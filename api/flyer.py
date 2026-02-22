@@ -63,9 +63,13 @@ class FlyerConfig:
     show_tagline: bool = True
     show_website_url: bool = True
     show_topics: bool = True
+    show_links: bool = True
 
     # Theme topics to show (list of {"title": ..., "color": ...})
     topics: list = field(default_factory=list)
+
+    # External links to show as QR codes at the bottom (list of {"label": ..., "url": ...})
+    links: list = field(default_factory=list)
 
     # Layout
     page_size: str = "a4"          # a4, a5, a6
@@ -535,6 +539,74 @@ def generate_flyer_pdf(slug: str, config: FlyerConfig) -> bytes:
             c.drawString(margin + 5 * mm, text_y - 1, config.cta_sub)
 
         cursor_y = cta_y - 3 * mm * scale
+
+    # ── Links with QR codes ───────────────────────────────────────
+    if config.show_links and config.links:
+        valid_links = [lnk for lnk in config.links if lnk.get("url")]
+        if valid_links:
+            qr_item_size = min(22 * mm * scale, 22 * mm)
+            label_font_size = min(6 * scale, 6)
+            label_font_size = max(label_font_size, 5)
+            item_gap = 4 * mm * scale
+
+            num_links = len(valid_links)
+            item_w = qr_item_size
+            total_w = num_links * item_w + (num_links - 1) * item_gap
+            # Clamp to content width: limit number of items that fit
+            max_items_per_row = max(1, int((content_w + item_gap) / (item_w + item_gap)))
+            rows_needed = (num_links + max_items_per_row - 1) // max_items_per_row
+
+            section_label = "Weitere Links"
+            section_font_size = min(7 * scale, 7)
+            section_font_size = max(section_font_size, 5)
+            label_line_h = label_font_size + 2
+
+            row_h = qr_item_size + label_line_h + 2
+            section_total_h = section_font_size + 3 * mm * scale + rows_needed * (row_h + 2 * mm * scale)
+
+            # Only draw if there is room above the bottom bar
+            if cursor_y - section_total_h > 8 * mm:
+                # Section header
+                c.setFont("Helvetica-Bold", section_font_size)
+                c.setFillColor(colors.Color(0.4, 0.4, 0.4))
+                c.drawString(margin, cursor_y, section_label)
+                cursor_y -= section_font_size + 2 * mm * scale
+
+                for row_idx in range(rows_needed):
+                    row_links = valid_links[row_idx * max_items_per_row:(row_idx + 1) * max_items_per_row]
+                    n = len(row_links)
+                    row_total_w = n * item_w + (n - 1) * item_gap
+                    start_x = margin + (content_w - row_total_w) / 2
+
+                    for col_idx, lnk in enumerate(row_links):
+                        ix = start_x + col_idx * (item_w + item_gap)
+                        iy = cursor_y - qr_item_size
+
+                        # Draw small QR code
+                        try:
+                            lnk_qr = _make_qr_image(lnk["url"], size=200)
+                            lnk_reader = ImageReader(lnk_qr)
+                            # Thin border
+                            c.setStrokeColor(colors.Color(0.8, 0.8, 0.8))
+                            c.setLineWidth(0.5)
+                            c.rect(ix - 0.75, iy - 0.75, item_w + 1.5, qr_item_size + 1.5, fill=0, stroke=1)
+                            c.drawImage(lnk_reader, ix, iy, width=item_w, height=qr_item_size)
+                        except Exception:
+                            pass
+
+                        # Draw label below QR
+                        raw_label = lnk.get("label") or lnk.get("url", "")
+                        max_label_chars = max(1, int(item_w / (label_font_size * 0.45)))
+                        label_text = textwrap.shorten(raw_label, width=max_label_chars, placeholder="…")
+                        c.setFont("Helvetica", label_font_size)
+                        c.setFillColor(colors.Color(0.3, 0.3, 0.3))
+                        label_w = c.stringWidth(label_text, "Helvetica", label_font_size)
+                        label_x = ix + (item_w - label_w) / 2
+                        c.drawString(label_x, iy - label_line_h, label_text)
+
+                    cursor_y -= qr_item_size + label_line_h + 2 * mm * scale
+
+                cursor_y -= 2 * mm * scale
 
     # ── Website URL (small, at bottom) ────────────────────────────
     if config.show_website_url and config.website_url:

@@ -2188,6 +2188,7 @@ class FlyerRequest(BaseModel):
     show_tagline: bool = True
     show_website_url: bool = True
     show_topics: bool = True
+    show_links: bool = True
 
     # Layout
     page_size: str = "a4"          # a4, a5, a6
@@ -2201,6 +2202,7 @@ async def generate_flyer(slug: str, body: FlyerRequest, request: Request, _admin
 
     candidate = _require_candidate(slug)
     pages = get_candidate_pages(slug)
+    links = get_candidate_links(slug)
 
     # Page-specific flyer: find the matching page
     target_page = None
@@ -2263,7 +2265,9 @@ async def generate_flyer(slug: str, body: FlyerRequest, request: Request, _admin
         show_tagline=body.show_tagline,
         show_website_url=body.show_website_url,
         show_topics=body.show_topics,
+        show_links=body.show_links,
         topics=topics,
+        links=[{"label": lnk.get("label", ""), "url": lnk.get("url", "")} for lnk in links],
         page_size=body.page_size,
         orientation=body.orientation,
         theme_color=theme_color,
