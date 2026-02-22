@@ -341,6 +341,16 @@ tbody tr:hover{background:#fafbfc}
       <p style="font-size:.88rem;color:#6e6e73;margin-bottom:1.25rem">Erstelle ein druckbares PDF-Dokument zum Verteilen an Haushalte. Alle Inhalte werden aus deinem Profil geladen und können hier angepasst werden.</p>
 
       <div class="form-grid">
+        <div class="form-group full">
+          <label>Flyer-Typ</label>
+          <select id="fly-page">
+            <option value="">Allgemeiner Flyer (alle Themen)</option>
+          </select>
+          <p class="hint">Wähle eine Unterseite, um einen themenspezifischen Flyer zu erstellen. Headline, Text und QR-Code werden automatisch angepasst.</p>
+        </div>
+      </div>
+
+      <div class="form-grid">
         <div class="form-group">
           <label>Seitenformat</label>
           <select id="fly-size">
@@ -474,6 +484,7 @@ document.querySelector(".main-tabs").addEventListener("click",function(e){
   t.classList.add("active");
   document.getElementById("pane-"+t.dataset.pane).classList.add("active");
   if(t.dataset.pane==="content"||t.dataset.pane==="pages"||t.dataset.pane==="links"){loadContent()}
+  if(t.dataset.pane==="flyer"){loadContent();populateFlyerPages()}
   if(t.dataset.pane==="settings"){loadNotifications()}
 });
 
@@ -687,7 +698,7 @@ window.doExportCandidate=function(){
 function loadContent(){
   if(!auth)return;
   if(contentData)return;
-  apiFetch("/admin/content").then(function(d){contentData=d;renderProfileForm(d);renderPagesEditor(d.pages);renderLinksEditor(d.links)}).catch(function(){});
+  apiFetch("/admin/content").then(function(d){contentData=d;renderProfileForm(d);renderPagesEditor(d.pages);renderLinksEditor(d.links);populateFlyerPages()}).catch(function(){});
 }
 
 function renderProfileForm(d){
@@ -991,16 +1002,31 @@ document.getElementById("forgot-btn").addEventListener("click",function(){
 });
 
 // ── Flyer Generator ──────────────────────────────────────────
+var flyerPagesPopulated=false;
+function populateFlyerPages(){
+  if(flyerPagesPopulated||!contentData||!contentData.pages)return;
+  var sel=document.getElementById("fly-page");
+  contentData.pages.forEach(function(p){
+    var opt=document.createElement("option");
+    opt.value=p.slug;
+    opt.textContent=p.theme||p.slug;
+    sel.appendChild(opt);
+  });
+  flyerPagesPopulated=true;
+}
+
 document.getElementById("fly-generate").addEventListener("click",function(){
   var btn=this,msg=document.getElementById("fly-msg");
   btn.disabled=true;msg.textContent="";msg.className="save-msg";
   msg.textContent="PDF wird erstellt...";
+  var pageSlug=document.getElementById("fly-page").value;
   var body={
     headline:document.getElementById("fly-headline").value,
     intro_text:document.getElementById("fly-intro").value,
     cta_text:document.getElementById("fly-cta").value,
     cta_sub:document.getElementById("fly-ctasub").value,
     website_url:document.getElementById("fly-url").value,
+    page_slug:pageSlug,
     page_size:document.getElementById("fly-size").value,
     orientation:document.getElementById("fly-orientation").value,
     show_portrait:document.getElementById("fly-show-portrait").checked,
@@ -1027,7 +1053,8 @@ document.getElementById("fly-generate").addEventListener("click",function(){
     var u=URL.createObjectURL(blob);
     var a=document.createElement("a");
     a.href=u;
-    a.download="flyer_"+SLUG+"_"+body.page_size+".pdf";
+    var suffix=pageSlug?"_"+pageSlug:"";
+    a.download="flyer_"+SLUG+suffix+"_"+body.page_size+".pdf";
     a.click();
     URL.revokeObjectURL(u);
     msg.className="save-msg ok";msg.textContent="PDF erstellt!";
