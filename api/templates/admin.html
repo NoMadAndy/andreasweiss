@@ -371,24 +371,29 @@ tbody tr:hover{background:#fafbfc}
       <div class="form-grid">
         <div class="form-group full">
           <label>Headline <span class="hint-inline">(leer = aus Profil)</span></label>
-          <input type="text" id="fly-headline" placeholder="z. B. Wofür ich stehe.">
+          <input type="text" id="fly-headline" placeholder="z. B. Wie gut kennst du Rohrbach? Mach mit beim Quiz!">
         </div>
         <div class="form-group full">
           <label>Einleitungstext <span class="hint-inline">(leer = aus Profil)</span></label>
-          <textarea id="fly-intro" rows="3" placeholder="Kurzer Text, der neugierig macht..."></textarea>
+          <textarea id="fly-intro" rows="3" placeholder="z. B. Scanne den QR-Code und teste dein Wissen! Stimme ab, was dir wichtig ist, und hinterlasse mir deine Meinung."></textarea>
         </div>
         <div class="form-group full">
           <label>CTA-Text <span class="hint-inline">(leer = aus Profil)</span></label>
-          <input type="text" id="fly-cta" placeholder="z. B. Ich würde mich über 3 Stimmen freuen!">
+          <input type="text" id="fly-cta" placeholder="z. B. Ich wuerde mich ueber 3 Stimmen freuen!">
         </div>
         <div class="form-group full">
           <label>CTA-Untertitel <span class="hint-inline">(leer = aus Profil)</span></label>
-          <input type="text" id="fly-ctasub" placeholder="z. B. Kommunalwahl Rohrbach · 08.03.2026">
+          <input type="text" id="fly-ctasub" placeholder="z. B. Kommunalwahl Rohrbach - 08.03.2026">
         </div>
         <div class="form-group full">
           <label>Website-URL <span class="hint-inline">(leer = automatisch)</span></label>
           <input type="text" id="fly-url" placeholder="https://...">
-          <p class="hint">Die URL wird als QR-Code auf dem Flyer dargestellt.</p>
+          <p class="hint">Die URL wird als grosser QR-Code auf dem Flyer dargestellt.</p>
+        </div>
+        <div class="form-group full">
+          <label>Zusaetzlicher Text <span class="hint-inline">(optional, Stichpunkte mit - am Zeilenanfang)</span></label>
+          <textarea id="fly-extra" rows="5" placeholder="z. B.&#10;- Auf meiner Seite findest du ein Quiz zu Rohrbach&#10;- Stimme ab, welche Themen dir wichtig sind&#10;- Schreib mir direkt, was du dir fuer unseren Ort wuenschst&#10;- Alle Infos zu meinen Zielen fuer Rohrbach"></textarea>
+          <p class="hint">Vorschlag fuer laengeren Flyer-Text: Nutze Stichpunkte (je Zeile mit - beginnen), um deine Kernbotschaften und den Mehrwert der Seite hervorzuheben. Die Punkte erscheinen als Aufzaehlung im PDF.</p>
         </div>
       </div>
 
@@ -1026,6 +1031,7 @@ document.getElementById("fly-generate").addEventListener("click",function(){
     cta_text:document.getElementById("fly-cta").value,
     cta_sub:document.getElementById("fly-ctasub").value,
     website_url:document.getElementById("fly-url").value,
+    extra_text:document.getElementById("fly-extra").value,
     page_slug:pageSlug,
     page_size:document.getElementById("fly-size").value,
     orientation:document.getElementById("fly-orientation").value,

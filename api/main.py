@@ -2172,6 +2172,7 @@ class FlyerRequest(BaseModel):
     cta_text: str = ""
     cta_sub: str = ""
     website_url: str = ""
+    extra_text: str = ""
 
     # Page-specific flyer (empty = general flyer with all topics)
     page_slug: str = ""
@@ -2251,6 +2252,7 @@ async def generate_flyer(slug: str, body: FlyerRequest, request: Request, _admin
         cta_text=body.cta_text or candidate.get("cta_text", ""),
         cta_sub=body.cta_sub or candidate.get("cta_sub", ""),
         website_url=website_url,
+        extra_text=body.extra_text,
         show_portrait=body.show_portrait,
         show_logo=body.show_logo,
         show_qr=body.show_qr,
