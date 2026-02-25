@@ -15,6 +15,8 @@ All visual elements can be toggled on/off via the `FlyerConfig` dataclass.
 import io
 import os
 import textwrap
+import urllib.parse
+import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -94,18 +96,36 @@ def _darken(rgb: tuple, factor: float = 0.7) -> tuple:
     return tuple(max(0, c * factor) for c in rgb)
 
 
-def _make_qr_image(url: str, size: int = 400) -> PILImage.Image:
-    """Generate a QR code as a PIL Image."""
+def _make_qr_image(url: str, size: int = 400, favicon_img: PILImage.Image | None = None) -> PILImage.Image:
+    """Generate a QR code as a PIL Image, optionally with a favicon overlay."""
+    error_corr = qrcode.constants.ERROR_CORRECT_H if favicon_img else qrcode.constants.ERROR_CORRECT_M
     qr = qrcode.QRCode(
         version=None,
-        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        error_correction=error_corr,
         box_size=10,
         border=2,
     )
     qr.add_data(url)
     qr.make(fit=True)
-    img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
-    return img.resize((size, size), PILImage.LANCZOS)
+    img = qr.make_image(fill_color="black", back_color="white").convert("RGBA")
+    img = img.resize((size, size), PILImage.LANCZOS)
+
+    if favicon_img is not None:
+        try:
+            fav_size = max(int(size * 0.22), 20)
+            fav = favicon_img.convert("RGBA").resize((fav_size, fav_size), PILImage.LANCZOS)
+
+            pad = max(int(fav_size * 0.15), 2)
+            bg_size = fav_size + 2 * pad
+            bg = PILImage.new("RGBA", (bg_size, bg_size), (255, 255, 255, 255))
+            bg.paste(fav, (pad, pad), mask=fav)
+            cx = (size - bg_size) // 2
+            cy = (size - bg_size) // 2
+            img.paste(bg, (cx, cy))
+        except Exception:
+            pass
+
+    return img.convert("RGB")
 
 
 def _resolve_image(slug: str, filename: str) -> str | None:
@@ -131,6 +151,22 @@ def _find_logo(slug: str, config_path: str = "") -> str | None:
         if os.path.isfile(p):
             return p
     return None
+
+
+def _fetch_favicon(url: str) -> PILImage.Image | None:
+    """Fetch the favicon of a target website and return as PIL RGBA Image."""
+    try:
+        parsed = urllib.parse.urlparse(url)
+        favicon_url = f"{parsed.scheme}://{parsed.netloc}/favicon.ico"
+        req = urllib.request.Request(
+            favicon_url,
+            headers={"User-Agent": "Mozilla/5.0 (compatible)"},
+        )
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            data = resp.read()
+        return PILImage.open(io.BytesIO(data)).convert("RGBA")
+    except Exception:
+        return None
 
 
 def _load_image_reader(filepath: str, target_size: int = 400) -> ImageReader | None:
@@ -205,6 +241,16 @@ def generate_flyer_pdf(slug: str, config: FlyerConfig) -> bytes:
 
     # Scale factor for smaller pages
     scale = min(page_w / A4[0], page_h / A4[1])
+
+    # Pre-compute footer height so main content doesn't overlap
+    _has_footer_links = config.show_links and any(lnk.get("url") for lnk in config.links)
+    _fqr_sz = min(12 * mm * scale, 12 * mm)
+    _flbl_sz = max(min(5.5 * scale, 5.5), 4.0)
+    _fsec_sz = max(min(6 * scale, 6), 4.5)
+    footer_bar_h = 4 * mm
+    footer_h = (footer_bar_h
+                + (_fsec_sz + 1.5 * mm + _fqr_sz + (_flbl_sz + 1.5) + 2 * mm
+                   if _has_footer_links else 0))
 
     # ── Top accent bar ────────────────────────────────────────────
     bar_h = 8 * mm * scale
@@ -509,9 +555,9 @@ def generate_flyer_pdf(slug: str, config: FlyerConfig) -> bytes:
         cta_box_h = 16 * mm * scale
         cta_y = cursor_y - cta_box_h
 
-        # Ensure CTA doesn't overlap bottom bar
-        if cta_y < 8 * mm:
-            cta_y = 8 * mm
+        # Ensure CTA doesn't overlap footer
+        if cta_y < footer_h + 2 * mm:
+            cta_y = footer_h + 2 * mm
 
         _draw_rounded_rect(c, margin, cta_y, content_w, cta_box_h,
                            4 * mm, fill_color=colors.Color(*theme_rgb, alpha=0.08))
@@ -540,88 +586,78 @@ def generate_flyer_pdf(slug: str, config: FlyerConfig) -> bytes:
 
         cursor_y = cta_y - 3 * mm * scale
 
-    # ── Links with QR codes ───────────────────────────────────────
+    # ── Footer: Links als kleine QR-Codes mit Favicon + farbige Leiste ──
+    valid_footer_links: list = []
     if config.show_links and config.links:
-        valid_links = [lnk for lnk in config.links if lnk.get("url")]
-        if valid_links:
-            qr_item_size = min(22 * mm * scale, 22 * mm)
-            label_font_size = min(6 * scale, 6)
-            label_font_size = max(label_font_size, 5)
-            item_gap = 4 * mm * scale
+        valid_footer_links = [lnk for lnk in config.links if lnk.get("url")]
 
-            num_links = len(valid_links)
-            item_w = qr_item_size
-            total_w = num_links * item_w + (num_links - 1) * item_gap
-            # Clamp to content width: limit number of items that fit
-            max_items_per_row = max(1, int((content_w + item_gap) / (item_w + item_gap)))
-            rows_needed = (num_links + max_items_per_row - 1) // max_items_per_row
+    if valid_footer_links:
+        item_gap_f = min(3 * mm * scale, 3 * mm)
+        max_items = max(1, int((content_w + item_gap_f) / (_fqr_sz + item_gap_f)))
+        row_links = valid_footer_links[:max_items]
+        n = len(row_links)
 
-            section_label = "Weitere Links"
-            section_font_size = min(7 * scale, 7)
-            section_font_size = max(section_font_size, 5)
-            label_line_h = label_font_size + 2
+        # Favicons der Zielseiten vorab abrufen
+        favicons = [_fetch_favicon(lnk["url"]) for lnk in row_links]
 
-            row_h = qr_item_size + label_line_h + 2
-            section_total_h = section_font_size + 3 * mm * scale + rows_needed * (row_h + 2 * mm * scale)
+        # Hintergrundstreifen für den QR-Bereich
+        strip_h = _fsec_sz + 1.5 * mm + _fqr_sz + (_flbl_sz + 1.5) + 2 * mm
+        strip_y = footer_bar_h
+        c.setFillColor(colors.Color(*theme_rgb, alpha=0.07))
+        c.rect(0, strip_y, page_w, strip_h, fill=1, stroke=0)
 
-            # Only draw if there is room above the bottom bar
-            if cursor_y - section_total_h > 8 * mm:
-                # Section header
-                c.setFont("Helvetica-Bold", section_font_size)
-                c.setFillColor(colors.Color(0.4, 0.4, 0.4))
-                c.drawString(margin, cursor_y, section_label)
-                cursor_y -= section_font_size + 2 * mm * scale
+        # Trennlinie oben
+        c.setStrokeColor(colors.Color(*theme_rgb, alpha=0.3))
+        c.setLineWidth(0.5)
+        c.line(0, strip_y + strip_h, page_w, strip_y + strip_h)
 
-                for row_idx in range(rows_needed):
-                    row_links = valid_links[row_idx * max_items_per_row:(row_idx + 1) * max_items_per_row]
-                    n = len(row_links)
-                    row_total_w = n * item_w + (n - 1) * item_gap
-                    start_x = margin + (content_w - row_total_w) / 2
+        # Abschnittsüberschrift
+        sec_y = strip_y + strip_h - _fsec_sz - 0.8 * mm
+        c.setFont("Helvetica-Bold", _fsec_sz)
+        c.setFillColor(colors.Color(*theme_rgb))
+        c.drawString(margin, sec_y, "Weitere Links")
 
-                    for col_idx, lnk in enumerate(row_links):
-                        ix = start_x + col_idx * (item_w + item_gap)
-                        iy = cursor_y - qr_item_size
+        # QR-Codes – zentriert
+        row_w = n * _fqr_sz + (n - 1) * item_gap_f
+        start_x = margin + (content_w - row_w) / 2
+        qr_y_f = strip_y + (_flbl_sz + 1.5) + 1 * mm
 
-                        # Draw small QR code
-                        try:
-                            lnk_qr = _make_qr_image(lnk["url"], size=200)
-                            lnk_reader = ImageReader(lnk_qr)
-                            # Thin border
-                            c.setStrokeColor(colors.Color(0.8, 0.8, 0.8))
-                            c.setLineWidth(0.5)
-                            c.rect(ix - 0.75, iy - 0.75, item_w + 1.5, qr_item_size + 1.5, fill=0, stroke=1)
-                            c.drawImage(lnk_reader, ix, iy, width=item_w, height=qr_item_size)
-                        except Exception:
-                            pass
+        for col_idx, lnk in enumerate(row_links):
+            ix = start_x + col_idx * (_fqr_sz + item_gap_f)
 
-                        # Draw label below QR
-                        raw_label = lnk.get("label") or lnk.get("url", "")
-                        max_label_chars = max(1, int(item_w / (label_font_size * 0.45)))
-                        label_text = textwrap.shorten(raw_label, width=max_label_chars, placeholder="…")
-                        c.setFont("Helvetica", label_font_size)
-                        c.setFillColor(colors.Color(0.3, 0.3, 0.3))
-                        label_w = c.stringWidth(label_text, "Helvetica", label_font_size)
-                        label_x = ix + (item_w - label_w) / 2
-                        c.drawString(label_x, iy - label_line_h, label_text)
+            try:
+                lnk_qr = _make_qr_image(lnk["url"], size=200, favicon_img=favicons[col_idx])
+                lnk_reader = ImageReader(lnk_qr)
+                c.setStrokeColor(colors.Color(0.82, 0.82, 0.82))
+                c.setLineWidth(0.5)
+                c.rect(ix - 0.5, qr_y_f - 0.5, _fqr_sz + 1, _fqr_sz + 1, fill=0, stroke=1)
+                c.drawImage(lnk_reader, ix, qr_y_f, width=_fqr_sz, height=_fqr_sz)
+            except Exception:
+                pass
 
-                    cursor_y -= qr_item_size + label_line_h + 2 * mm * scale
+            # Beschriftung unterhalb des QR-Codes
+            raw_label = lnk.get("label") or lnk.get("url", "")
+            max_lbl_chars = max(1, int(_fqr_sz / (_flbl_sz * 0.45)))
+            lbl_text = textwrap.shorten(raw_label, width=max_lbl_chars, placeholder="…")
+            c.setFont("Helvetica", _flbl_sz)
+            c.setFillColor(colors.Color(0.3, 0.3, 0.3))
+            lbl_w_px = c.stringWidth(lbl_text, "Helvetica", _flbl_sz)
+            lbl_x = ix + (_fqr_sz - lbl_w_px) / 2
+            c.drawString(lbl_x, strip_y + 0.8 * mm, lbl_text)
 
-                cursor_y -= 2 * mm * scale
+    # ── Farbige Fußleiste ─────────────────────────────────────────
+    c.setFillColor(theme_color)
+    c.rect(0, 0, page_w, footer_bar_h, fill=1, stroke=0)
 
-    # ── Website URL (small, at bottom) ────────────────────────────
+    # Website-URL weiß in der Fußleiste
     if config.show_website_url and config.website_url:
-        url_size = min(8 * scale, 8)
-        url_size = max(url_size, 6)
+        url_size = max(min(7 * scale, 7), 5)
         display_url = config.website_url.replace("https://", "").replace("http://", "")
         c.setFont("Helvetica", url_size)
-        c.setFillColor(theme_color)
-        url_w = c.stringWidth(display_url, "Helvetica", url_size)
-        url_x = (page_w - url_w) / 2
-        c.drawString(url_x, 5 * mm, display_url)
-
-    # ── Bottom accent bar ─────────────────────────────────────────
-    c.setFillColor(theme_color)
-    c.rect(0, 0, page_w, 3 * mm, fill=1, stroke=0)
+        c.setFillColor(colors.white)
+        url_w_px = c.stringWidth(display_url, "Helvetica", url_size)
+        url_x = (page_w - url_w_px) / 2
+        c.drawString(url_x, (footer_bar_h - url_size) / 2, display_url)
 
     c.showPage()
     c.save()
