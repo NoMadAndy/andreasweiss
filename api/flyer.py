@@ -15,6 +15,8 @@ All visual elements can be toggled on/off via the `FlyerConfig` dataclass.
 import io
 import os
 import textwrap
+import urllib.parse
+import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -94,9 +96,9 @@ def _darken(rgb: tuple, factor: float = 0.7) -> tuple:
     return tuple(max(0, c * factor) for c in rgb)
 
 
-def _make_qr_image(url: str, size: int = 400, favicon_path: str | None = None) -> PILImage.Image:
+def _make_qr_image(url: str, size: int = 400, favicon_img: PILImage.Image | None = None) -> PILImage.Image:
     """Generate a QR code as a PIL Image, optionally with a favicon overlay."""
-    error_corr = qrcode.constants.ERROR_CORRECT_H if favicon_path else qrcode.constants.ERROR_CORRECT_M
+    error_corr = qrcode.constants.ERROR_CORRECT_H if favicon_img else qrcode.constants.ERROR_CORRECT_M
     qr = qrcode.QRCode(
         version=None,
         error_correction=error_corr,
@@ -108,18 +110,10 @@ def _make_qr_image(url: str, size: int = 400, favicon_path: str | None = None) -
     img = qr.make_image(fill_color="black", back_color="white").convert("RGBA")
     img = img.resize((size, size), PILImage.LANCZOS)
 
-    if favicon_path and os.path.isfile(favicon_path):
+    if favicon_img is not None:
         try:
             fav_size = max(int(size * 0.22), 20)
-            if favicon_path.lower().endswith(".svg"):
-                import cairosvg
-                png_bytes = cairosvg.svg2png(
-                    url=favicon_path, output_width=fav_size, output_height=fav_size,
-                )
-                fav = PILImage.open(io.BytesIO(png_bytes)).convert("RGBA")
-            else:
-                fav = PILImage.open(favicon_path).convert("RGBA")
-                fav = fav.resize((fav_size, fav_size), PILImage.LANCZOS)
+            fav = favicon_img.convert("RGBA").resize((fav_size, fav_size), PILImage.LANCZOS)
 
             pad = max(int(fav_size * 0.15), 2)
             bg_size = fav_size + 2 * pad
@@ -159,13 +153,20 @@ def _find_logo(slug: str, config_path: str = "") -> str | None:
     return None
 
 
-def _find_favicon(slug: str = "") -> str | None:
-    """Find favicon file from static assets directory."""
-    for name in ("favicon.svg", "icon-192.png", "icon-512.png"):
-        p = os.path.join(STATIC_DIR, name)
-        if os.path.isfile(p):
-            return p
-    return None
+def _fetch_favicon(url: str) -> PILImage.Image | None:
+    """Fetch the favicon of a target website and return as PIL RGBA Image."""
+    try:
+        parsed = urllib.parse.urlparse(url)
+        favicon_url = f"{parsed.scheme}://{parsed.netloc}/favicon.ico"
+        req = urllib.request.Request(
+            favicon_url,
+            headers={"User-Agent": "Mozilla/5.0 (compatible)"},
+        )
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            data = resp.read()
+        return PILImage.open(io.BytesIO(data)).convert("RGBA")
+    except Exception:
+        return None
 
 
 def _load_image_reader(filepath: str, target_size: int = 400) -> ImageReader | None:
@@ -591,11 +592,13 @@ def generate_flyer_pdf(slug: str, config: FlyerConfig) -> bytes:
         valid_footer_links = [lnk for lnk in config.links if lnk.get("url")]
 
     if valid_footer_links:
-        favicon_path = _find_favicon(slug)
         item_gap_f = min(3 * mm * scale, 3 * mm)
         max_items = max(1, int((content_w + item_gap_f) / (_fqr_sz + item_gap_f)))
         row_links = valid_footer_links[:max_items]
         n = len(row_links)
+
+        # Favicons der Zielseiten vorab abrufen
+        favicons = [_fetch_favicon(lnk["url"]) for lnk in row_links]
 
         # Hintergrundstreifen für den QR-Bereich
         strip_h = _fsec_sz + 1.5 * mm + _fqr_sz + (_flbl_sz + 1.5) + 2 * mm
@@ -623,7 +626,7 @@ def generate_flyer_pdf(slug: str, config: FlyerConfig) -> bytes:
             ix = start_x + col_idx * (_fqr_sz + item_gap_f)
 
             try:
-                lnk_qr = _make_qr_image(lnk["url"], size=200, favicon_path=favicon_path)
+                lnk_qr = _make_qr_image(lnk["url"], size=200, favicon_img=favicons[col_idx])
                 lnk_reader = ImageReader(lnk_qr)
                 c.setStrokeColor(colors.Color(0.82, 0.82, 0.82))
                 c.setLineWidth(0.5)
