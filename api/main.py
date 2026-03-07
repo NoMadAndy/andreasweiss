@@ -1,6 +1,6 @@
 """FastAPI backend – Multi-tenant Wahlplattform."""
 
-VERSION = "3.11.0"
+VERSION = "3.12.0"
 
 import csv
 import hashlib
@@ -32,6 +32,7 @@ from db import (
     get_db, init_db, get_candidate, get_candidate_pages,
     get_candidate_links, get_all_candidates,
     get_platform_settings, set_platform_settings,
+    get_candidate_goals, get_goal_updates,
 )
 from geoip import lookup, reload_reader, status as geoip_status, GEOIP_PATH
 from mailer import (
@@ -355,6 +356,26 @@ class LinkData(BaseModel):
 class CredentialsUpdate(BaseModel):
     new_user: Optional[str] = Field(None, min_length=2, max_length=50)
     new_pass: Optional[str] = Field(None, min_length=6, max_length=100)
+
+
+GOAL_CATEGORIES = {"ziel", "projekt", "vorhaben", "antrag"}
+GOAL_STATUSES = {"idee", "geplant", "in_arbeit", "eingereicht", "teilweise_umgesetzt", "umgesetzt", "angenommen", "abgelehnt", "pausiert"}
+GOAL_PRIORITIES = {"hoch", "mittel", "niedrig"}
+
+
+class GoalData(BaseModel):
+    category: str = Field("ziel", max_length=20)
+    title: str = Field(..., min_length=1, max_length=200)
+    description: str = Field("", max_length=5000)
+    status: str = Field("idee", max_length=30)
+    priority: str = Field("mittel", max_length=10)
+    target_date: str = Field("", max_length=20)
+    is_public: int = Field(1, ge=0, le=1)
+
+
+class GoalUpdateData(BaseModel):
+    new_status: str = Field(..., max_length=30)
+    note: str = Field("", max_length=2000)
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -861,6 +882,8 @@ async def candidate_home(slug: str, request: Request):
     candidate = _require_candidate(slug)
     pages = get_candidate_pages(slug)
     links = get_candidate_links(slug)
+    goals = get_candidate_goals(slug, public_only=True)
+    goals_done = sum(1 for g in goals if g["status"] in ("umgesetzt", "angenommen"))
     return templates.TemplateResponse("home.html", {
         "request": request,
         "candidate": candidate,
@@ -869,6 +892,8 @@ async def candidate_home(slug: str, request: Request):
         "slug": slug,
         "page_id": "home",
         "theme_color": candidate["theme_color"],
+        "goals_count": len(goals),
+        "goals_done": goals_done,
     })
 
 
@@ -966,6 +991,22 @@ async def candidate_datenschutz(slug: str, request: Request):
         "page_id": "datenschutz",
         "page_title": "Datenschutz",
         "content_html": content,
+        "theme_color": candidate["theme_color"],
+    })
+
+
+@app.get("/{slug}/ziele/", response_class=HTMLResponse)
+async def candidate_goals_page(slug: str, request: Request):
+    candidate = _require_candidate(slug)
+    links = get_candidate_links(slug)
+    goals = get_candidate_goals(slug, public_only=True)
+    return templates.TemplateResponse("goals.html", {
+        "request": request,
+        "candidate": candidate,
+        "goals": goals,
+        "links": links,
+        "slug": slug,
+        "page_id": "ziele",
         "theme_color": candidate["theme_color"],
     })
 
@@ -1906,6 +1947,183 @@ async def delete_link(slug: str, link_id: int, _admin: str = Depends(verify_admi
     finally:
         db.close()
     return {"ok": True}
+
+
+# ══════════════════════════════════════════════════════════════════
+#  Goals CRUD (Admin)
+# ══════════════════════════════════════════════════════════════════
+
+@app.get("/api/{slug}/admin/goals")
+async def admin_list_goals(slug: str, _admin: str = Depends(verify_admin)):
+    _require_candidate(slug)
+    goals = get_candidate_goals(slug, public_only=False)
+    for g in goals:
+        g["updates"] = get_goal_updates(g["id"])
+    return {"goals": goals}
+
+
+@app.post("/api/{slug}/admin/goals")
+async def admin_create_goal(slug: str, data: GoalData, _admin: str = Depends(verify_admin)):
+    _require_candidate(slug)
+    if data.category not in GOAL_CATEGORIES:
+        raise HTTPException(400, f"Ungültige Kategorie: {data.category}")
+    if data.status not in GOAL_STATUSES:
+        raise HTTPException(400, f"Ungültiger Status: {data.status}")
+    if data.priority not in GOAL_PRIORITIES:
+        raise HTTPException(400, f"Ungültige Priorität: {data.priority}")
+    db = get_db()
+    try:
+        max_order = db.execute(
+            "SELECT COALESCE(MAX(sort_order), 0) as m FROM candidate_goals WHERE candidate_slug=?",
+            (slug,),
+        ).fetchone()["m"]
+        cur = db.execute(
+            "INSERT INTO candidate_goals (candidate_slug, category, title, description, status, priority, target_date, is_public, sort_order) "
+            "VALUES (?,?,?,?,?,?,?,?,?)",
+            (slug, data.category, data.title, data.description, data.status, data.priority, data.target_date, data.is_public, max_order + 1),
+        )
+        goal_id = cur.lastrowid
+        db.execute(
+            "INSERT INTO goal_updates (goal_id, old_status, new_status, note) VALUES (?,?,?,?)",
+            (goal_id, "", data.status, "Ziel erstellt"),
+        )
+        db.commit()
+    finally:
+        db.close()
+    return {"ok": True, "id": goal_id}
+
+
+@app.put("/api/{slug}/admin/goals/{goal_id}")
+async def admin_update_goal(slug: str, goal_id: int, data: GoalData, _admin: str = Depends(verify_admin)):
+    _require_candidate(slug)
+    if data.category not in GOAL_CATEGORIES:
+        raise HTTPException(400, f"Ungültige Kategorie: {data.category}")
+    if data.status not in GOAL_STATUSES:
+        raise HTTPException(400, f"Ungültiger Status: {data.status}")
+    if data.priority not in GOAL_PRIORITIES:
+        raise HTTPException(400, f"Ungültige Priorität: {data.priority}")
+    db = get_db()
+    try:
+        existing = db.execute(
+            "SELECT id, status FROM candidate_goals WHERE id=? AND candidate_slug=?",
+            (goal_id, slug),
+        ).fetchone()
+        if not existing:
+            raise HTTPException(404, "Ziel nicht gefunden")
+        db.execute(
+            "UPDATE candidate_goals SET category=?, title=?, description=?, status=?, priority=?, "
+            "target_date=?, is_public=?, updated_at=datetime('now') WHERE id=? AND candidate_slug=?",
+            (data.category, data.title, data.description, data.status, data.priority,
+             data.target_date, data.is_public, goal_id, slug),
+        )
+        if existing["status"] != data.status:
+            db.execute(
+                "INSERT INTO goal_updates (goal_id, old_status, new_status, note) VALUES (?,?,?,?)",
+                (goal_id, existing["status"], data.status, "Status geändert"),
+            )
+        db.commit()
+    finally:
+        db.close()
+    return {"ok": True}
+
+
+@app.delete("/api/{slug}/admin/goals/{goal_id}")
+async def admin_delete_goal(slug: str, goal_id: int, _admin: str = Depends(verify_admin)):
+    _require_candidate(slug)
+    db = get_db()
+    try:
+        db.execute("DELETE FROM candidate_goals WHERE id=? AND candidate_slug=?", (goal_id, slug))
+        db.commit()
+    finally:
+        db.close()
+    return {"ok": True}
+
+
+@app.post("/api/{slug}/admin/goals/{goal_id}/update")
+async def admin_goal_status_update(slug: str, goal_id: int, data: GoalUpdateData, _admin: str = Depends(verify_admin)):
+    _require_candidate(slug)
+    if data.new_status not in GOAL_STATUSES:
+        raise HTTPException(400, f"Ungültiger Status: {data.new_status}")
+    db = get_db()
+    try:
+        existing = db.execute(
+            "SELECT id, status FROM candidate_goals WHERE id=? AND candidate_slug=?",
+            (goal_id, slug),
+        ).fetchone()
+        if not existing:
+            raise HTTPException(404, "Ziel nicht gefunden")
+        db.execute(
+            "UPDATE candidate_goals SET status=?, updated_at=datetime('now') WHERE id=?",
+            (data.new_status, goal_id),
+        )
+        db.execute(
+            "INSERT INTO goal_updates (goal_id, old_status, new_status, note) VALUES (?,?,?,?)",
+            (goal_id, existing["status"], data.new_status, data.note),
+        )
+        db.commit()
+    finally:
+        db.close()
+    return {"ok": True}
+
+
+@app.put("/api/{slug}/admin/goals/reorder")
+async def admin_reorder_goals(slug: str, request: Request, _admin: str = Depends(verify_admin)):
+    _require_candidate(slug)
+    data = await request.json()
+    order = data.get("order", [])
+    if not isinstance(order, list):
+        raise HTTPException(400, "order muss eine Liste von IDs sein")
+    db = get_db()
+    try:
+        for i, gid in enumerate(order):
+            db.execute(
+                "UPDATE candidate_goals SET sort_order=? WHERE id=? AND candidate_slug=?",
+                (i, gid, slug),
+            )
+        db.commit()
+    finally:
+        db.close()
+    return {"ok": True}
+
+
+# ══════════════════════════════════════════════════════════════════
+#  Goals API (Public)
+# ══════════════════════════════════════════════════════════════════
+
+@app.get("/api/{slug}/goals")
+async def public_goals(slug: str):
+    _require_candidate(slug)
+    goals = get_candidate_goals(slug, public_only=True)
+    # Compute stats
+    total = len(goals)
+    done = sum(1 for g in goals if g["status"] in ("umgesetzt", "angenommen"))
+    by_category = {}
+    for g in goals:
+        cat = g["category"]
+        if cat not in by_category:
+            by_category[cat] = {"total": 0, "done": 0}
+        by_category[cat]["total"] += 1
+        if g["status"] in ("umgesetzt", "angenommen"):
+            by_category[cat]["done"] += 1
+    return {"goals": goals, "total": total, "done": done, "by_category": by_category}
+
+
+@app.get("/api/{slug}/goals/{goal_id}")
+async def public_goal_detail(slug: str, goal_id: int):
+    _require_candidate(slug)
+    db = get_db()
+    try:
+        row = db.execute(
+            "SELECT * FROM candidate_goals WHERE id=? AND candidate_slug=? AND is_public=1",
+            (goal_id, slug),
+        ).fetchone()
+        if not row:
+            raise HTTPException(404, "Ziel nicht gefunden")
+        goal = dict(row)
+        goal["updates"] = get_goal_updates(goal_id)
+    finally:
+        db.close()
+    return goal
 
 
 @app.get("/api/{slug}/admin/export.csv")

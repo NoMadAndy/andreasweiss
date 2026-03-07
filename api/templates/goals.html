@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Ziele & Vorhaben – {{ candidate.name }}{% endblock %}
+{% block description %}Ziele, Projekte und Vorhaben von {{ candidate.name }}{% endblock %}
+
+{% block head_extra %}
+<style>:root{--theme-color:{{ candidate.theme_color or '#1E6FB9' }}}</style>
+{% endblock %}
+
+{% block header %}
+{% include '_candidate_header.html' %}
+{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>🎯 Meine Ziele & Vorhaben</h1>
+    <p style="color:var(--text-secondary)">Transparenz ist mir wichtig – hier finden Sie alle meine Ziele, Projekte und Anträge mit aktuellem Status.</p>
+</section>
+
+{% if goals %}
+<div class="goals-stats">
+    <div class="goals-progress-bar">
+        {% set done = goals|selectattr('status', 'in', ['umgesetzt', 'angenommen'])|list|length %}
+        {% set total = goals|length %}
+        {% set pct = ((done / total * 100) | round | int) if total else 0 %}
+        <div class="goals-progress-text">
+            <strong>{{ done }} von {{ total }}</strong> Vorhaben umgesetzt ({{ pct }}%)
+        </div>
+        <div class="goals-track"><div class="goals-fill" style="width:{{ pct }}%"></div></div>
+    </div>
+</div>
+
+<div class="goals-filters" id="goals-filters">
+    <button class="goals-filter-btn active" data-cat="">Alle</button>
+    <button class="goals-filter-btn" data-cat="ziel">🎯 Ziele</button>
+    <button class="goals-filter-btn" data-cat="projekt">🏗️ Projekte</button>
+    <button class="goals-filter-btn" data-cat="vorhaben">💡 Vorhaben</button>
+    <button class="goals-filter-btn" data-cat="antrag">📝 Anträge</button>
+</div>
+
+<div class="goals-list" id="goals-list">
+    {% for goal in goals %}
+    <div class="goal-card" data-category="{{ goal.category }}" data-status="{{ goal.status }}">
+        <div class="goal-header">
+            <span class="goal-cat-icon">
+                {% if goal.category == 'ziel' %}🎯{% elif goal.category == 'projekt' %}🏗️{% elif goal.category == 'vorhaben' %}💡{% elif goal.category == 'antrag' %}📝{% endif %}
+            </span>
+            <span class="goal-status goal-status--{{ goal.status }}">
+                {% if goal.status == 'idee' %}💭 Idee{% elif goal.status == 'geplant' %}📋 Geplant{% elif goal.status == 'in_arbeit' %}🔨 In Arbeit{% elif goal.status == 'eingereicht' %}📮 Eingereicht{% elif goal.status == 'umgesetzt' %}✅ Umgesetzt{% elif goal.status == 'teilweise_umgesetzt' %}🔶 Teilw. umgesetzt{% elif goal.status == 'angenommen' %}✅ Angenommen{% elif goal.status == 'abgelehnt' %}❌ Abgelehnt{% elif goal.status == 'pausiert' %}⏸️ Pausiert{% endif %}
+            </span>
+        </div>
+        <h3 class="goal-title">{{ goal.title }}</h3>
+        {% if goal.description %}
+        <div class="goal-desc md-content">{{ goal.description | markdown }}</div>
+        {% endif %}
+        <div class="goal-meta">
+            {% if goal.target_date %}<span>📅 {{ goal.target_date }}</span>{% endif %}
+            {% if goal.priority == 'hoch' %}<span>🔴 Hohe Priorität</span>{% endif %}
+        </div>
+        <button class="goal-detail-btn" data-goal-id="{{ goal.id }}">Details & Verlauf ▾</button>
+        <div class="goal-timeline hidden" id="goal-timeline-{{ goal.id }}">
+            <p class="goal-timeline-loading">Lade Verlauf…</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="section-card">
+    <p style="color:var(--text-secondary);text-align:center;padding:2rem 0">Noch keine Ziele veröffentlicht.</p>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+"use strict";
+var SLUG=document.body.dataset.slug||"";
+var API="/api/"+SLUG;
+
+// Category filter
+var filterBtns=document.querySelectorAll(".goals-filter-btn");
+filterBtns.forEach(function(btn){
+  btn.addEventListener("click",function(){
+    filterBtns.forEach(function(b){b.classList.remove("active")});
+    btn.classList.add("active");
+    var cat=btn.dataset.cat;
+    document.querySelectorAll(".goal-card").forEach(function(card){
+      card.style.display=(!cat||card.dataset.category===cat)?"":"none";
+    });
+  });
+});
+
+// Detail/Timeline toggle
+document.querySelectorAll(".goal-detail-btn").forEach(function(btn){
+  btn.addEventListener("click",function(){
+    var goalId=btn.dataset.goalId;
+    var tl=document.getElementById("goal-timeline-"+goalId);
+    if(tl.classList.contains("hidden")){
+      tl.classList.remove("hidden");
+      btn.textContent="Details & Verlauf ▴";
+      if(tl.querySelector(".goal-timeline-loading")){
+        fetch(API+"/goals/"+goalId).then(function(r){return r.json()}).then(function(g){
+          if(!g.updates||!g.updates.length){tl.innerHTML='<p style="color:var(--text-secondary);font-size:.85rem">Noch keine Updates.</p>';return}
+          var h='<div class="goal-tl-items">';
+          g.updates.forEach(function(u){
+            var ds=(u.created_at||"").replace("T"," ").substring(0,16);
+            h+='<div class="goal-tl-item">';
+            h+='<span class="goal-tl-date">'+ds+'</span>';
+            h+='<span class="goal-tl-change">';
+            if(u.old_status)h+='<span class="goal-tl-old">'+escHtml(u.old_status.replace("_"," "))+'</span> → ';
+            h+='<strong>'+escHtml(u.new_status.replace("_"," "))+'</strong>';
+            h+='</span>';
+            if(u.note)h+='<div class="goal-tl-note">'+escHtml(u.note)+'</div>';
+            h+='</div>';
+          });
+          h+='</div>';
+          tl.innerHTML=h;
+        }).catch(function(){tl.innerHTML='<p style="color:#dc2626;font-size:.85rem">Fehler beim Laden.</p>'});
+      }
+    }else{
+      tl.classList.add("hidden");
+      btn.textContent="Details & Verlauf ▾";
+    }
+  });
+});
+
+function escHtml(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML}
+})();
+</script>
+{% endblock %}

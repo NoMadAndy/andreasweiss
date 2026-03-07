@@ -565,6 +565,197 @@ a { color: var(--theme-color); }
 .cta-banner .md-content img { border-radius: 6px; }
 
 /* ── Feedback Form ────────────────────────────────────────────────── */
+
+/* ── Goals Page ──────────────────────────────────────────────────── */
+.goals-stats {
+  margin-bottom: 1.25rem;
+}
+
+.goals-progress-bar {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  box-shadow: var(--shadow);
+}
+
+.goals-progress-text {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.goals-progress-text strong {
+  color: var(--text);
+}
+
+.goals-track {
+  width: 100%;
+  height: 10px;
+  background: var(--bg);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.goals-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--theme-color), #16a34a);
+  border-radius: 5px;
+  transition: width 0.5s ease;
+  min-width: 2px;
+}
+
+.goals-filters {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.goals-filter-btn {
+  padding: 0.45rem 0.9rem;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--card-bg);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: all 0.15s;
+}
+
+.goals-filter-btn:hover {
+  background: var(--bg);
+}
+
+.goals-filter-btn.active {
+  background: var(--theme-color);
+  color: #fff;
+  border-color: var(--theme-color);
+}
+
+.goals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.goal-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  box-shadow: var(--shadow);
+  border-left: 4px solid var(--theme-color);
+}
+
+.goal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.goal-cat-icon {
+  font-size: 1.1rem;
+}
+
+.goal-status {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.goal-status--idee { background: #f0f0f2; color: #8e8e93; }
+.goal-status--geplant { background: #e8f0fe; color: #1e6fb9; }
+.goal-status--in_arbeit { background: #fef3cd; color: #b45309; }
+.goal-status--eingereicht { background: #f0e6fe; color: #6A3FB5; }
+.goal-status--umgesetzt { background: #dcfce7; color: #15803d; }
+.goal-status--teilweise_umgesetzt { background: #fef3cd; color: #b45309; }
+.goal-status--angenommen { background: #dcfce7; color: #15803d; }
+.goal-status--abgelehnt { background: #fee2e2; color: #b91c1c; }
+.goal-status--pausiert { background: #fef3cd; color: #b45309; }
+
+.goal-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.goal-desc {
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.goal-meta {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.goal-detail-btn {
+  background: none;
+  border: none;
+  color: var(--theme-color);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  font-family: var(--font);
+}
+
+.goal-detail-btn:hover {
+  text-decoration: underline;
+}
+
+.goal-timeline {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.goal-timeline.hidden {
+  display: none;
+}
+
+.goal-tl-items {
+  border-left: 2px solid var(--border);
+  padding-left: 0.75rem;
+}
+
+.goal-tl-item {
+  margin-bottom: 0.6rem;
+  font-size: 0.82rem;
+}
+
+.goal-tl-date {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.goal-tl-old {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+
+.goal-tl-note {
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 480px) {
+  .goals-filters { gap: 0.3rem; }
+  .goals-filter-btn { padding: 0.35rem 0.65rem; font-size: 0.75rem; }
+  .goal-card { padding: 1rem; }
+  .goal-title { font-size: 0.95rem; }
+}
+
+/* ── Feedback Form ────────────────────────────────────────────────── */
 .feedback-form textarea {
   display: block;
   width: 100%;

@@ -2,6 +2,22 @@
 
 Alle relevanten Änderungen an diesem Projekt werden hier dokumentiert.
 
+## [3.12.0] – 2026-03-07
+
+### Hinzugefügt
+
+- **Ziele & Vorhaben:** Kandidaten können Ziele, Projekte, Vorhaben und Anträge verwalten und tracken
+- **Kategorien:** Ziel, Projekt, Vorhaben, Antrag – jeweils mit eigenem Icon
+- **Status-Workflow:** 9 Stufen (Idee → Geplant → In Arbeit → Eingereicht → Teilweise umgesetzt → Umgesetzt → Angenommen → Abgelehnt → Pausiert)
+- **Prioritäten:** Hoch, Mittel, Niedrig
+- **Timeline/Verlauf:** Jede Statusänderung wird mit Datum und optionaler Notiz protokolliert
+- **Öffentliche Ziele-Seite:** `/{slug}/ziele/` mit Fortschrittsbalken, Kategorie-Filter und aufklappbarer Timeline pro Ziel
+- **Homepage-Kachel:** Zeigt Anzahl Vorhaben und umgesetzte Ziele, auch ohne andere Unterseiten
+- **Admin-Tab „🎯 Ziele":** Vollständiges CRUD mit Kategorie-/Status-Filter, Inline-Bearbeitung, Status-Updates mit Notiz
+- **DB-Tabellen:** `candidate_goals` und `goal_updates` mit Indizes
+- **API-Endpoints:** 2 öffentliche + 6 Admin-Endpoints (CRUD, Status-Update, Reorder)
+- **Validierung:** Ungültige Kategorien, Status und Prioritäten werden mit 400 abgelehnt
+
 ## [3.7.0] – 2026-02-14
 
 ### Verbessert

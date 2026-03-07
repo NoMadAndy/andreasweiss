@@ -28,7 +28,7 @@
 </div>
 {% endif %}
 
-{% if pages %}
+{% if pages or goals_count %}
 <div class="cards-grid">
     {% for page in pages %}
     <a href="/{{ candidate.slug }}/{{ page.slug }}/" class="card-link" style="border-left-color:{{ page.color }}">
@@ -36,6 +36,12 @@
         <p>{{ page.tile_subtitle }}</p>
     </a>
     {% endfor %}
+    {% if goals_count %}
+    <a href="/{{ candidate.slug }}/ziele/" class="card-link" style="border-left-color:{{ candidate.theme_color or '#1E6FB9' }}">
+        <h3>🎯 Ziele & Vorhaben</h3>
+        <p>{{ goals_count }} Vorhaben – {{ goals_done }} umgesetzt</p>
+    </a>
+    {% endif %}
 </div>
 {% endif %}
 

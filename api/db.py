@@ -256,7 +256,38 @@ def init_db():
             uniq_day_hash   TEXT
         );
 
+        -- ── Candidate Goals ──────────────────────────────────────
+        CREATE TABLE IF NOT EXISTS candidate_goals (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            candidate_slug  TEXT NOT NULL,
+            category        TEXT NOT NULL DEFAULT 'ziel',
+            title           TEXT NOT NULL,
+            description     TEXT DEFAULT '',
+            status          TEXT NOT NULL DEFAULT 'idee',
+            priority        TEXT DEFAULT 'mittel',
+            target_date     TEXT DEFAULT '',
+            is_public       INTEGER DEFAULT 1,
+            sort_order      INTEGER DEFAULT 0,
+            created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at      TEXT NOT NULL DEFAULT (datetime('now')),
+            FOREIGN KEY (candidate_slug) REFERENCES candidates(slug) ON DELETE CASCADE
+        );
+
+        -- ── Goal Updates (Timeline) ─────────────────────────────────
+        CREATE TABLE IF NOT EXISTS goal_updates (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            goal_id         INTEGER NOT NULL,
+            old_status      TEXT DEFAULT '',
+            new_status      TEXT DEFAULT '',
+            note            TEXT DEFAULT '',
+            created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+            FOREIGN KEY (goal_id) REFERENCES candidate_goals(id) ON DELETE CASCADE
+        );
+
         -- ── Indexes ─────────────────────────────────────────────
+        CREATE INDEX IF NOT EXISTS idx_goals_cand    ON candidate_goals(candidate_slug);
+        CREATE INDEX IF NOT EXISTS idx_goals_public  ON candidate_goals(candidate_slug, is_public);
+        CREATE INDEX IF NOT EXISTS idx_goal_updates  ON goal_updates(goal_id);
         CREATE INDEX IF NOT EXISTS idx_visits_cand   ON visits(candidate_slug);
         CREATE INDEX IF NOT EXISTS idx_visits_page   ON visits(page);
         CREATE INDEX IF NOT EXISTS idx_visits_ts     ON visits(ts);
@@ -413,6 +444,38 @@ def get_all_candidates() -> list[dict]:
         rows = db.execute(
             "SELECT slug, name, party, tagline, election_date, theme_color, created_at "
             "FROM candidates ORDER BY created_at",
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        db.close()
+
+
+def get_candidate_goals(slug: str, public_only: bool = False) -> list[dict]:
+    """Return goals for a candidate, optionally filtered to public only."""
+    db = get_db()
+    try:
+        if public_only:
+            rows = db.execute(
+                "SELECT * FROM candidate_goals WHERE candidate_slug=? AND is_public=1 ORDER BY sort_order, id",
+                (slug,),
+            ).fetchall()
+        else:
+            rows = db.execute(
+                "SELECT * FROM candidate_goals WHERE candidate_slug=? ORDER BY sort_order, id",
+                (slug,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        db.close()
+
+
+def get_goal_updates(goal_id: int) -> list[dict]:
+    """Return all updates for a goal, newest first."""
+    db = get_db()
+    try:
+        rows = db.execute(
+            "SELECT * FROM goal_updates WHERE goal_id=? ORDER BY created_at DESC",
+            (goal_id,),
         ).fetchall()
         return [dict(r) for r in rows]
     finally:

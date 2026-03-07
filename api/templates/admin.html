@@ -205,6 +205,7 @@ tbody tr:hover{background:#fafbfc}
     <button class="main-tab active" data-pane="stats">📈 Statistiken</button>
     <button class="main-tab" data-pane="content">✏️ Inhalte</button>
     <button class="main-tab" data-pane="pages">📄 Seiten</button>
+    <button class="main-tab" data-pane="goals">🎯 Ziele</button>
     <button class="main-tab" data-pane="links">🔗 Links</button>
     <button class="main-tab" data-pane="files">📤 Dateien</button>
     <button class="main-tab" data-pane="flyer">📄 Flyer</button>
@@ -298,6 +299,116 @@ tbody tr:hover{background:#fafbfc}
 
   <!-- ═══ TAB: Links ═══ -->
   <div class="tab-pane" id="pane-links">
+
+  <!-- ═══ TAB: Ziele ═══ -->
+  <div class="tab-pane" id="pane-goals">
+    <section class="panel">
+      <div class="panel-header"><h2>🎯 Ziele & Vorhaben verwalten</h2><button class="add-btn" id="add-goal-btn">+ Neues Ziel</button></div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem">
+        <select id="goal-filter-cat" style="padding:.4rem .75rem;border:1.5px solid #e0e0e0;border-radius:8px;font-size:.82rem;background:#fff">
+          <option value="">Alle Kategorien</option>
+          <option value="ziel">🎯 Ziel</option>
+          <option value="projekt">🏗️ Projekt</option>
+          <option value="vorhaben">💡 Vorhaben</option>
+          <option value="antrag">📝 Antrag</option>
+        </select>
+        <select id="goal-filter-status" style="padding:.4rem .75rem;border:1.5px solid #e0e0e0;border-radius:8px;font-size:.82rem;background:#fff">
+          <option value="">Alle Status</option>
+          <option value="idee">Idee</option>
+          <option value="geplant">Geplant</option>
+          <option value="in_arbeit">In Arbeit</option>
+          <option value="eingereicht">Eingereicht</option>
+          <option value="umgesetzt">Umgesetzt</option>
+          <option value="teilweise_umgesetzt">Teilweise umgesetzt</option>
+          <option value="angenommen">Angenommen</option>
+          <option value="abgelehnt">Abgelehnt</option>
+          <option value="pausiert">Pausiert</option>
+        </select>
+      </div>
+      <div id="goals-editor"></div>
+    </section>
+
+    <section class="panel" id="goal-form-panel" hidden>
+      <div class="panel-header"><h2 id="goal-form-title">Neues Ziel</h2></div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Kategorie</label>
+          <select id="gf-category">
+            <option value="ziel">🎯 Ziel</option>
+            <option value="projekt">🏗️ Projekt</option>
+            <option value="vorhaben">💡 Vorhaben</option>
+            <option value="antrag">📝 Antrag</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Priorität</label>
+          <select id="gf-priority">
+            <option value="hoch">🔴 Hoch</option>
+            <option value="mittel" selected>🟡 Mittel</option>
+            <option value="niedrig">🟢 Niedrig</option>
+          </select>
+        </div>
+        <div class="form-group full"><label>Titel</label><input type="text" id="gf-title" placeholder="z. B. Neuer Spielplatz am Sportpark"></div>
+        <div class="form-group full"><label>Beschreibung <span class="hint-inline">Markdown</span></label>
+          <div class="md-toolbar"><button type="button" onclick="mdInsert('gf-desc','link')">🔗 Link</button><button type="button" onclick="mdInsert('gf-desc','bold')"><b>B</b></button><button type="button" onclick="mdInsert('gf-desc','italic')"><i>I</i></button></div>
+          <textarea id="gf-desc" rows="4"></textarea></div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="gf-status">
+            <option value="idee">💭 Idee</option>
+            <option value="geplant">📋 Geplant</option>
+            <option value="in_arbeit">🔨 In Arbeit</option>
+            <option value="eingereicht">📮 Eingereicht</option>
+            <option value="umgesetzt">✅ Umgesetzt</option>
+            <option value="teilweise_umgesetzt">🔶 Teilweise umgesetzt</option>
+            <option value="angenommen">✅ Angenommen</option>
+            <option value="abgelehnt">❌ Abgelehnt</option>
+            <option value="pausiert">⏸️ Pausiert</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Zieldatum <span class="hint-inline">(optional)</span></label><input type="text" id="gf-target" placeholder="z. B. Q3 2026"></div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+            <input type="checkbox" id="gf-public" checked style="width:18px;height:18px;accent-color:#1e6fb9">
+            Öffentlich sichtbar
+          </label>
+        </div>
+      </div>
+      <div style="display:flex;gap:.5rem;margin-top:.5rem">
+        <button class="save-btn" id="save-goal-btn">💾 Speichern</button>
+        <button class="export-btn" id="cancel-goal-btn" style="font-family:inherit">Abbrechen</button>
+        <span class="save-msg" id="goal-form-msg"></span>
+      </div>
+      <input type="hidden" id="gf-edit-id" value="">
+    </section>
+
+    <section class="panel" id="goal-update-panel" hidden>
+      <div class="panel-header"><h2>Status-Update</h2></div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Neuer Status</label>
+          <select id="gu-status">
+            <option value="idee">💭 Idee</option>
+            <option value="geplant">📋 Geplant</option>
+            <option value="in_arbeit">🔨 In Arbeit</option>
+            <option value="eingereicht">📮 Eingereicht</option>
+            <option value="umgesetzt">✅ Umgesetzt</option>
+            <option value="teilweise_umgesetzt">🔶 Teilweise umgesetzt</option>
+            <option value="angenommen">✅ Angenommen</option>
+            <option value="abgelehnt">❌ Abgelehnt</option>
+            <option value="pausiert">⏸️ Pausiert</option>
+          </select>
+        </div>
+        <div class="form-group full"><label>Kommentar</label><textarea id="gu-note" rows="3" placeholder="Was hat sich geändert?"></textarea></div>
+      </div>
+      <div style="display:flex;gap:.5rem;margin-top:.5rem">
+        <button class="save-btn" id="save-update-btn">💾 Status aktualisieren</button>
+        <button class="export-btn" id="cancel-update-btn" style="font-family:inherit">Abbrechen</button>
+        <span class="save-msg" id="goal-update-msg"></span>
+      </div>
+      <input type="hidden" id="gu-goal-id" value="">
+    </section>
+  </div>
     <section class="panel">
       <div class="panel-header"><h2>🔗 Externe Links</h2></div>
       <div id="links-list"></div>
@@ -492,6 +603,7 @@ document.querySelector(".main-tabs").addEventListener("click",function(e){
   t.classList.add("active");
   document.getElementById("pane-"+t.dataset.pane).classList.add("active");
   if(t.dataset.pane==="content"||t.dataset.pane==="pages"||t.dataset.pane==="links"){loadContent()}
+  if(t.dataset.pane==="goals"){loadGoals()}
   if(t.dataset.pane==="flyer"){loadContent();populateFlyerPages()}
   if(t.dataset.pane==="settings"){loadNotifications()}
 });
@@ -1011,6 +1123,172 @@ document.getElementById("forgot-btn").addEventListener("click",function(){
 
 // ── Flyer Generator ──────────────────────────────────────────
 var flyerPagesPopulated=false;
+
+// ── Goals Management ────────────────────────────────────────
+var goalsData=null;
+var CAT_ICONS={"ziel":"🎯","projekt":"🏗️","vorhaben":"💡","antrag":"📝"};
+var CAT_LABELS={"ziel":"Ziel","projekt":"Projekt","vorhaben":"Vorhaben","antrag":"Antrag"};
+var STATUS_ICONS={"idee":"💭","geplant":"📋","in_arbeit":"🔨","eingereicht":"📮","umgesetzt":"✅","teilweise_umgesetzt":"🔶","angenommen":"✅","abgelehnt":"❌","pausiert":"⏸️"};
+var STATUS_LABELS={"idee":"Idee","geplant":"Geplant","in_arbeit":"In Arbeit","eingereicht":"Eingereicht","umgesetzt":"Umgesetzt","teilweise_umgesetzt":"Teilw. umgesetzt","angenommen":"Angenommen","abgelehnt":"Abgelehnt","pausiert":"Pausiert"};
+var STATUS_COLORS={"idee":"#8e8e93","geplant":"#1e6fb9","in_arbeit":"#D97706","eingereicht":"#6A3FB5","umgesetzt":"#16a34a","teilweise_umgesetzt":"#D97706","angenommen":"#16a34a","abgelehnt":"#dc2626","pausiert":"#D97706"};
+var PRI_ICONS={"hoch":"🔴","mittel":"🟡","niedrig":"🟢"};
+
+function loadGoals(){
+  if(!auth)return;
+  apiFetch("/admin/goals").then(function(d){goalsData=d.goals;renderGoalsList()}).catch(function(){});
+}
+
+function renderGoalsList(){
+  var el=document.getElementById("goals-editor");
+  var catF=document.getElementById("goal-filter-cat").value;
+  var statF=document.getElementById("goal-filter-status").value;
+  var filtered=(goalsData||[]).filter(function(g){
+    if(catF&&g.category!==catF)return false;
+    if(statF&&g.status!==statF)return false;
+    return true;
+  });
+  if(!filtered.length){el.innerHTML='<p class="empty">Keine Ziele gefunden.</p>';return}
+  var html="";
+  filtered.forEach(function(g){
+    var sc=STATUS_COLORS[g.status]||"#8e8e93";
+    var vis=g.is_public?'<span style="color:#16a34a;font-size:.75rem">🌐 Öffentlich</span>':'<span style="color:#8e8e93;font-size:.75rem">🔒 Privat</span>';
+    html+='<div class="page-edit-card" style="--pc:'+sc+'">';
+    html+='<div class="page-edit-header" onclick="togglePageEdit(this)">';
+    html+='<h3>'+(CAT_ICONS[g.category]||"")+" "+esc(g.title)+'</h3>';
+    html+='<span style="display:flex;align-items:center;gap:.75rem">';
+    html+='<span style="background:'+sc+';color:#fff;padding:.15rem .6rem;border-radius:6px;font-size:.72rem;font-weight:600">'+(STATUS_LABELS[g.status]||g.status)+'</span>';
+    html+=vis+' ▼</span></div>';
+    html+='<div class="page-edit-body">';
+    html+='<div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:.75rem;font-size:.82rem;color:#6e6e73">';
+    html+='<span>'+(PRI_ICONS[g.priority]||"")+" Priorität: "+(g.priority||"mittel")+"</span>";
+    if(g.target_date)html+="<span>📅 Ziel: "+esc(g.target_date)+"</span>";
+    html+='<span>Erstellt: '+(g.created_at||"").substring(0,10)+'</span>';
+    if(g.updated_at&&g.updated_at!==g.created_at)html+='<span>Aktualisiert: '+(g.updated_at||"").substring(0,10)+'</span>';
+    html+='</div>';
+    if(g.description)html+='<div style="background:#f5f5f7;padding:.75rem;border-radius:8px;font-size:.88rem;margin-bottom:.75rem;white-space:pre-wrap">'+esc(g.description)+'</div>';
+    // Updates timeline
+    if(g.updates&&g.updates.length){
+      html+='<div style="margin-bottom:.75rem"><strong style="font-size:.82rem;color:#3a3a3c">📜 Verlauf:</strong>';
+      html+='<div style="margin-top:.5rem;border-left:2px solid #e0e0e0;padding-left:.75rem">';
+      g.updates.forEach(function(u){
+        var ds=(u.created_at||"").replace("T"," ").substring(0,16);
+        html+='<div style="margin-bottom:.5rem;font-size:.8rem">';
+        html+='<span style="color:#8e8e93">'+esc(ds)+'</span> ';
+        if(u.old_status)html+='<span style="text-decoration:line-through;color:#8e8e93">'+(STATUS_LABELS[u.old_status]||u.old_status)+'</span> → ';
+        html+='<span style="color:'+( STATUS_COLORS[u.new_status]||"#333")+';font-weight:600">'+(STATUS_LABELS[u.new_status]||u.new_status)+'</span>';
+        if(u.note)html+='<div style="color:#6e6e73;margin-top:.15rem">'+esc(u.note)+'</div>';
+        html+='</div>';
+      });
+      html+='</div></div>';
+    }
+    html+='<div style="display:flex;gap:.5rem;flex-wrap:wrap">';
+    html+='<button class="save-btn" style="font-size:.8rem;padding:.4rem .85rem" onclick="editGoal('+g.id+')">✏️ Bearbeiten</button>';
+    html+='<button class="export-btn" style="font-family:inherit;font-size:.8rem" onclick="statusUpdateGoal('+g.id+')">🔄 Status-Update</button>';
+    html+='<button class="del-btn" onclick="deleteGoal('+g.id+')">🗑 Löschen</button>';
+    html+='</div></div></div>';
+  });
+  el.innerHTML=html;
+}
+
+document.getElementById("goal-filter-cat").addEventListener("change",renderGoalsList);
+document.getElementById("goal-filter-status").addEventListener("change",renderGoalsList);
+
+document.getElementById("add-goal-btn").addEventListener("click",function(){
+  document.getElementById("gf-edit-id").value="";
+  document.getElementById("goal-form-title").textContent="Neues Ziel";
+  document.getElementById("gf-category").value="ziel";
+  document.getElementById("gf-priority").value="mittel";
+  document.getElementById("gf-title").value="";
+  document.getElementById("gf-desc").value="";
+  document.getElementById("gf-status").value="idee";
+  document.getElementById("gf-target").value="";
+  document.getElementById("gf-public").checked=true;
+  document.getElementById("goal-form-panel").hidden=false;
+  document.getElementById("goal-form-panel").scrollIntoView({behavior:"smooth"});
+});
+
+window.editGoal=function(id){
+  var g=(goalsData||[]).find(function(x){return x.id===id});
+  if(!g)return;
+  document.getElementById("gf-edit-id").value=id;
+  document.getElementById("goal-form-title").textContent="Ziel bearbeiten";
+  document.getElementById("gf-category").value=g.category;
+  document.getElementById("gf-priority").value=g.priority;
+  document.getElementById("gf-title").value=g.title;
+  document.getElementById("gf-desc").value=g.description;
+  document.getElementById("gf-status").value=g.status;
+  document.getElementById("gf-target").value=g.target_date;
+  document.getElementById("gf-public").checked=!!g.is_public;
+  document.getElementById("goal-form-panel").hidden=false;
+  document.getElementById("goal-form-panel").scrollIntoView({behavior:"smooth"});
+};
+
+window.statusUpdateGoal=function(id){
+  var g=(goalsData||[]).find(function(x){return x.id===id});
+  if(!g)return;
+  document.getElementById("gu-goal-id").value=id;
+  document.getElementById("gu-status").value=g.status;
+  document.getElementById("gu-note").value="";
+  document.getElementById("goal-update-panel").hidden=false;
+  document.getElementById("goal-update-panel").scrollIntoView({behavior:"smooth"});
+};
+
+window.deleteGoal=function(id){
+  if(!confirm("Ziel wirklich löschen?"))return;
+  apiFetch("/admin/goals/"+id,{method:"DELETE"})
+  .then(function(){goalsData=null;loadGoals()})
+  .catch(function(){alert("Fehler beim Löschen")});
+};
+
+document.getElementById("cancel-goal-btn").addEventListener("click",function(){
+  document.getElementById("goal-form-panel").hidden=true;
+});
+
+document.getElementById("save-goal-btn").addEventListener("click",function(){
+  var btn=this,msg=document.getElementById("goal-form-msg");
+  var editId=document.getElementById("gf-edit-id").value;
+  btn.disabled=true;msg.textContent="";
+  var data={
+    category:document.getElementById("gf-category").value,
+    title:document.getElementById("gf-title").value.trim(),
+    description:document.getElementById("gf-desc").value,
+    status:document.getElementById("gf-status").value,
+    priority:document.getElementById("gf-priority").value,
+    target_date:document.getElementById("gf-target").value,
+    is_public:document.getElementById("gf-public").checked?1:0
+  };
+  if(!data.title){msg.className="save-msg err";msg.textContent="❌ Titel erforderlich";btn.disabled=false;return}
+  var url=editId?"/admin/goals/"+editId:"/admin/goals";
+  var method=editId?"PUT":"POST";
+  apiFetch(url,{method:method,headers:{"Content-Type":"application/json"},body:JSON.stringify(data)})
+  .then(function(){
+    msg.className="save-msg ok";msg.textContent="✅ Gespeichert";btn.disabled=false;
+    goalsData=null;loadGoals();
+    setTimeout(function(){document.getElementById("goal-form-panel").hidden=true;msg.textContent=""},1500);
+  })
+  .catch(function(){msg.className="save-msg err";msg.textContent="❌ Fehler";btn.disabled=false});
+});
+
+document.getElementById("cancel-update-btn").addEventListener("click",function(){
+  document.getElementById("goal-update-panel").hidden=true;
+});
+
+document.getElementById("save-update-btn").addEventListener("click",function(){
+  var btn=this,msg=document.getElementById("goal-update-msg");
+  var goalId=document.getElementById("gu-goal-id").value;
+  btn.disabled=true;msg.textContent="";
+  var data={
+    new_status:document.getElementById("gu-status").value,
+    note:document.getElementById("gu-note").value
+  };
+  apiFetch("/admin/goals/"+goalId+"/update",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)})
+  .then(function(){
+    msg.className="save-msg ok";msg.textContent="✅ Status aktualisiert";btn.disabled=false;
+    goalsData=null;loadGoals();
+    setTimeout(function(){document.getElementById("goal-update-panel").hidden=true;msg.textContent=""},1500);
+  })
+  .catch(function(){msg.className="save-msg err";msg.textContent="❌ Fehler";btn.disabled=false});
+});
 function populateFlyerPages(){
   if(flyerPagesPopulated||!contentData||!contentData.pages)return;
   var sel=document.getElementById("fly-page");
