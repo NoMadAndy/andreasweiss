@@ -2,6 +2,15 @@
 
 Alle relevanten Änderungen an diesem Projekt werden hier dokumentiert.
 
+## [3.13.0] – 2025-07-17
+
+### Hinzugefügt
+
+- **Anhänge für Ziele & Updates:** Bilder, PDFs, Videos und externe Links (YouTube/Vimeo) können sowohl an Ziele als auch an Status-Updates angehängt werden
+- **Admin-Upload:** Datei-Upload (max 10 MB) und Link-Einbettung direkt im Ziel-Formular und Status-Update-Panel
+- **Öffentliche Darstellung:** Bilder inline, Videos als Embed, Dokumente als Download-Link, externe Links anklickbar
+- **YouTube/Vimeo-Erkennung:** Automatische Thumbnail-Vorschau und Embed-Player für YouTube- und Vimeo-Links
+
 ## [3.12.0] – 2026-03-07
 
 ### Hinzugefügt

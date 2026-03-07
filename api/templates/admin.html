@@ -371,6 +371,30 @@ tbody tr:hover{background:#fafbfc}
           </label>
         </div>
       </div>
+      <!-- Attachments (nur bei Bearbeitung) -->
+      <div id="gf-attachments-section" hidden style="margin-top:1rem;border-top:1px solid #e0e0e0;padding-top:1rem">
+        <h3 style="font-size:.95rem;font-weight:600;margin-bottom:.75rem">📎 Anhänge</h3>
+        <div id="gf-attachments-list" style="margin-bottom:.75rem"></div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:flex-end">
+          <div style="flex:1;min-width:200px">
+            <label style="font-size:.78rem;color:#6e6e73;display:block;margin-bottom:.25rem">Datei hochladen <span style="font-size:.72rem">(Bild, PDF, Video · max 10 MB)</span></label>
+            <input type="file" id="gf-attach-file" accept="image/*,application/pdf,video/mp4,video/webm" style="font-size:.85rem">
+          </div>
+          <button class="add-btn" id="gf-attach-upload-btn" style="white-space:nowrap">📤 Hochladen</button>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:flex-end;margin-top:.5rem">
+          <div style="flex:2;min-width:200px">
+            <label style="font-size:.78rem;color:#6e6e73;display:block;margin-bottom:.25rem">Oder Link / Video-URL einfügen</label>
+            <input type="url" id="gf-attach-url" placeholder="https://..." style="width:100%;padding:.5rem .7rem;border:1.5px solid #e0e0e0;border-radius:8px;font-size:.85rem">
+          </div>
+          <div style="flex:1;min-width:120px">
+            <label style="font-size:.78rem;color:#6e6e73;display:block;margin-bottom:.25rem">Bezeichnung</label>
+            <input type="text" id="gf-attach-label" placeholder="optional" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e0e0e0;border-radius:8px;font-size:.85rem">
+          </div>
+          <button class="add-btn" id="gf-attach-link-btn" style="white-space:nowrap">🔗 Link hinzufügen</button>
+        </div>
+        <div class="save-msg" id="gf-attach-msg" style="margin-top:.35rem"></div>
+      </div>
       <div style="display:flex;gap:.5rem;margin-top:.5rem">
         <button class="save-btn" id="save-goal-btn">💾 Speichern</button>
         <button class="export-btn" id="cancel-goal-btn" style="font-family:inherit">Abbrechen</button>
@@ -397,6 +421,23 @@ tbody tr:hover{background:#fafbfc}
           </select>
         </div>
         <div class="form-group full"><label>Kommentar</label><textarea id="gu-note" rows="3" placeholder="Was hat sich geändert?"></textarea></div>
+      </div>
+      <!-- Attachments für Status-Update -->
+      <div style="margin-top:.75rem;border-top:1px solid #e0e0e0;padding-top:.75rem">
+        <h3 style="font-size:.9rem;font-weight:600;margin-bottom:.5rem">📎 Anhänge zum Update</h3>
+        <div id="gu-attachments-list" style="margin-bottom:.5rem"></div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:flex-end">
+          <div style="flex:1;min-width:200px">
+            <input type="file" id="gu-attach-file" accept="image/*,application/pdf,video/mp4,video/webm" style="font-size:.85rem">
+          </div>
+          <button class="add-btn" id="gu-attach-upload-btn" style="white-space:nowrap">📤 Hochladen</button>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:flex-end;margin-top:.5rem">
+          <input type="url" id="gu-attach-url" placeholder="Link / Video-URL..." style="flex:2;min-width:200px;padding:.5rem .7rem;border:1.5px solid #e0e0e0;border-radius:8px;font-size:.85rem">
+          <input type="text" id="gu-attach-label" placeholder="Bezeichnung" style="flex:1;min-width:100px;padding:.5rem .7rem;border:1.5px solid #e0e0e0;border-radius:8px;font-size:.85rem">
+          <button class="add-btn" id="gu-attach-link-btn" style="white-space:nowrap">🔗 Link</button>
+        </div>
+        <div class="save-msg" id="gu-attach-msg" style="margin-top:.35rem"></div>
       </div>
       <div style="display:flex;gap:.5rem;margin-top:.5rem">
         <button class="save-btn" id="save-update-btn">💾 Status aktualisieren</button>
@@ -1166,6 +1207,11 @@ function renderGoalsList(){
     if(g.updated_at&&g.updated_at!==g.created_at)html+='<span>Aktualisiert: '+(g.updated_at||"").substring(0,10)+'</span>';
     html+='</div>';
     if(g.description)html+='<div style="background:#f5f5f7;padding:.75rem;border-radius:8px;font-size:.88rem;margin-bottom:.75rem;white-space:pre-wrap">'+esc(g.description)+'</div>';
+    // Goal-level attachments
+    var goalAttach=(g.attachments||[]).filter(function(a){return !a.update_id});
+    if(goalAttach.length){
+      html+='<div style="margin-bottom:.75rem">'+renderAttachList(goalAttach,g.id)+'</div>';
+    }
     // Updates timeline
     if(g.updates&&g.updates.length){
       html+='<div style="margin-bottom:.75rem"><strong style="font-size:.82rem;color:#3a3a3c">📜 Verlauf:</strong>';
@@ -1177,6 +1223,9 @@ function renderGoalsList(){
         if(u.old_status)html+='<span style="text-decoration:line-through;color:#8e8e93">'+(STATUS_LABELS[u.old_status]||u.old_status)+'</span> → ';
         html+='<span style="color:'+( STATUS_COLORS[u.new_status]||"#333")+';font-weight:600">'+(STATUS_LABELS[u.new_status]||u.new_status)+'</span>';
         if(u.note)html+='<div style="color:#6e6e73;margin-top:.15rem">'+esc(u.note)+'</div>';
+        // Update-level attachments
+        var uAttach=(g.attachments||[]).filter(function(a){return a.update_id===u.id});
+        if(uAttach.length)html+=renderAttachList(uAttach,g.id);
         html+='</div>';
       });
       html+='</div></div>';
@@ -1189,6 +1238,126 @@ function renderGoalsList(){
   });
   el.innerHTML=html;
 }
+
+function renderAttachList(attachments,goalId){
+  var AKIND={"image":"🖼️","video":"🎬","document":"📄","link":"🔗"};
+  var h='<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.35rem">';
+  attachments.forEach(function(a){
+    if(a.kind==="image"){
+      h+='<div style="position:relative;display:inline-block">';
+      h+='<a href="'+esc(a.url)+'" target="_blank"><img src="'+esc(a.url)+'" style="height:60px;border-radius:6px;object-fit:cover" alt="'+esc(a.label)+'"></a>';
+      h+='<button onclick="deleteAttach('+goalId+','+a.id+')" style="position:absolute;top:-4px;right:-4px;background:#dc2626;color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:.65rem;cursor:pointer;line-height:1">✕</button>';
+      h+='</div>';
+    } else if(a.kind==="video"&&a.url.match(/youtu/)){
+      var vid=a.url.match(/(?:v=|youtu\.be\/)([^&\s]+)/);
+      if(vid){
+        h+='<div style="position:relative;display:inline-block">';
+        h+='<a href="'+esc(a.url)+'" target="_blank"><img src="https://img.youtube.com/vi/'+esc(vid[1])+'/mqdefault.jpg" style="height:60px;border-radius:6px" alt="YouTube"></a>';
+        h+='<button onclick="deleteAttach('+goalId+','+a.id+')" style="position:absolute;top:-4px;right:-4px;background:#dc2626;color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:.65rem;cursor:pointer;line-height:1">✕</button>';
+        h+='</div>';
+      }
+    } else {
+      h+='<span style="display:inline-flex;align-items:center;gap:.25rem;background:#f0f2f5;padding:.25rem .6rem;border-radius:6px;font-size:.78rem">';
+      h+=(AKIND[a.kind]||"📎")+' <a href="'+esc(a.url)+'" target="_blank" style="color:#1e6fb9">'+esc(a.label||a.filename||"Link")+'</a>';
+      h+=' <button onclick="deleteAttach('+goalId+','+a.id+')" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:.75rem;padding:0">✕</button>';
+      h+='</span>';
+    }
+  });
+  h+='</div>';
+  return h;
+}
+
+window.deleteAttach=function(goalId,attachId){
+  if(!confirm("Anhang löschen?"))return;
+  apiFetch("/admin/goals/"+goalId+"/attachments/"+attachId,{method:"DELETE"})
+  .then(function(){goalsData=null;loadGoals()})
+  .catch(function(){alert("Fehler beim Löschen")});
+};
+
+function renderAdminAttachList(attachments,goalId,containerId){
+  var AKIND={"image":"🖼️","video":"🎬","document":"📄","link":"🔗"};
+  var c=document.getElementById(containerId);if(!c)return;
+  if(!attachments||!attachments.length){c.innerHTML='<em style="font-size:.8rem;color:#8e8e93">Keine Anhänge</em>';return}
+  var h='<div style="display:flex;gap:.5rem;flex-wrap:wrap">';
+  attachments.forEach(function(a){
+    if(a.kind==="image"){
+      h+='<div style="position:relative;display:inline-block">';
+      h+='<a href="'+esc(a.url)+'" target="_blank"><img src="'+esc(a.url)+'" style="height:50px;border-radius:6px;object-fit:cover"></a>';
+      h+='<button onclick="deleteAttach('+goalId+','+a.id+')" style="position:absolute;top:-4px;right:-4px;background:#dc2626;color:#fff;border:none;border-radius:50%;width:16px;height:16px;font-size:.6rem;cursor:pointer;line-height:1">✕</button>';
+      h+='</div>';
+    } else {
+      h+='<span style="display:inline-flex;align-items:center;gap:.25rem;background:#f0f2f5;padding:.2rem .5rem;border-radius:5px;font-size:.78rem">';
+      h+=(AKIND[a.kind]||"📎")+' <a href="'+esc(a.url)+'" target="_blank" style="color:#1e6fb9">'+esc(a.label||a.filename||"Link")+'</a>';
+      h+=' <button onclick="deleteAttach('+goalId+','+a.id+')" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:.7rem;padding:0">✕</button>';
+      h+='</span>';
+    }
+  });
+  h+='</div>';
+  c.innerHTML=h;
+}
+
+function uploadAttachment(goalId,fileInput,msgEl,updateId){
+  if(!fileInput.files||!fileInput.files[0]){msgEl.textContent="Keine Datei ausgewählt";return Promise.resolve()}
+  var fd=new FormData();
+  fd.append("file",fileInput.files[0]);
+  if(updateId)fd.append("update_id",updateId);
+  msgEl.textContent="⏳ Hochladen…";
+  return apiFetch("/admin/goals/"+goalId+"/attachments",{method:"POST",body:fd})
+  .then(function(){msgEl.className="save-msg ok";msgEl.textContent="✅ Hochgeladen";fileInput.value=""})
+  .catch(function(e){msgEl.className="save-msg err";msgEl.textContent="❌ "+((e&&e.message)||"Fehler")});
+}
+
+function addLinkAttachment(goalId,urlInput,labelInput,msgEl,updateId){
+  var url=urlInput.value.trim();
+  if(!url){msgEl.textContent="Bitte URL eingeben";return Promise.resolve()}
+  var body={url:url,label:labelInput.value.trim()||""};
+  if(updateId)body.update_id=parseInt(updateId);
+  msgEl.textContent="⏳ Speichern…";
+  return apiFetch("/admin/goals/"+goalId+"/attachments/link",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+  .then(function(){msgEl.className="save-msg ok";msgEl.textContent="✅ Link hinzugefügt";urlInput.value="";labelInput.value=""})
+  .catch(function(e){msgEl.className="save-msg err";msgEl.textContent="❌ "+((e&&e.message)||"Fehler")});
+}
+
+/* Goal-form attachment handlers */
+document.getElementById("gf-attach-upload-btn").addEventListener("click",function(){
+  var goalId=document.getElementById("gf-edit-id").value;
+  if(!goalId){alert("Bitte zuerst das Ziel speichern");return}
+  var fi=document.getElementById("gf-attach-file");
+  var msg=document.getElementById("gf-attach-msg");
+  uploadAttachment(goalId,fi,msg).then(function(){goalsData=null;loadGoals()});
+});
+document.getElementById("gf-attach-link-btn").addEventListener("click",function(){
+  var goalId=document.getElementById("gf-edit-id").value;
+  if(!goalId){alert("Bitte zuerst das Ziel speichern");return}
+  var msg=document.getElementById("gf-attach-msg");
+  addLinkAttachment(goalId,document.getElementById("gf-attach-url"),document.getElementById("gf-attach-label"),msg)
+  .then(function(){goalsData=null;loadGoals()});
+});
+
+/* Update-form attachment handlers — pending list until save */
+var pendingUpdateFiles=[];
+var pendingUpdateLinks=[];
+document.getElementById("gu-attach-upload-btn").addEventListener("click",function(){
+  var fi=document.getElementById("gu-attach-file");
+  if(!fi.files||!fi.files[0])return;
+  pendingUpdateFiles.push(fi.files[0]);
+  var list=document.getElementById("gu-attachments-list");
+  list.innerHTML=pendingUpdateFiles.map(function(f){return '<span style="background:#e8f0fe;padding:.2rem .5rem;border-radius:5px;font-size:.78rem">📎 '+esc(f.name)+'</span>'}).join(" ")
+    + pendingUpdateLinks.map(function(l){return '<span style="background:#e8f0fe;padding:.2rem .5rem;border-radius:5px;font-size:.78rem">🔗 '+esc(l.label||l.url)+'</span>'}).join(" ");
+  fi.value="";
+  document.getElementById("gu-attach-msg").textContent="";
+});
+document.getElementById("gu-attach-link-btn").addEventListener("click",function(){
+  var url=document.getElementById("gu-attach-url").value.trim();
+  if(!url)return;
+  pendingUpdateLinks.push({url:url,label:document.getElementById("gu-attach-label").value.trim()||""});
+  var list=document.getElementById("gu-attachments-list");
+  list.innerHTML=pendingUpdateFiles.map(function(f){return '<span style="background:#e8f0fe;padding:.2rem .5rem;border-radius:5px;font-size:.78rem">📎 '+esc(f.name)+'</span>'}).join(" ")
+    + pendingUpdateLinks.map(function(l){return '<span style="background:#e8f0fe;padding:.2rem .5rem;border-radius:5px;font-size:.78rem">🔗 '+esc(l.label||l.url)+'</span>'}).join(" ");
+  document.getElementById("gu-attach-url").value="";
+  document.getElementById("gu-attach-label").value="";
+  document.getElementById("gu-attach-msg").textContent="";
+});
 
 document.getElementById("goal-filter-cat").addEventListener("change",renderGoalsList);
 document.getElementById("goal-filter-status").addEventListener("change",renderGoalsList);
@@ -1203,6 +1372,7 @@ document.getElementById("add-goal-btn").addEventListener("click",function(){
   document.getElementById("gf-status").value="idee";
   document.getElementById("gf-target").value="";
   document.getElementById("gf-public").checked=true;
+  var sec=document.getElementById("gf-attachments-section");if(sec)sec.hidden=true;
   document.getElementById("goal-form-panel").hidden=false;
   document.getElementById("goal-form-panel").scrollIntoView({behavior:"smooth"});
 });
@@ -1219,6 +1389,11 @@ window.editGoal=function(id){
   document.getElementById("gf-status").value=g.status;
   document.getElementById("gf-target").value=g.target_date;
   document.getElementById("gf-public").checked=!!g.is_public;
+  /* Show attachments section and load goal-level attachments */
+  var sec=document.getElementById("gf-attachments-section");
+  if(sec)sec.hidden=false;
+  var goalAttach=(g.attachments||[]).filter(function(a){return !a.update_id});
+  renderAdminAttachList(goalAttach,id,"gf-attachments-list");
   document.getElementById("goal-form-panel").hidden=false;
   document.getElementById("goal-form-panel").scrollIntoView({behavior:"smooth"});
 };
@@ -1229,6 +1404,9 @@ window.statusUpdateGoal=function(id){
   document.getElementById("gu-goal-id").value=id;
   document.getElementById("gu-status").value=g.status;
   document.getElementById("gu-note").value="";
+  pendingUpdateFiles=[];pendingUpdateLinks=[];
+  document.getElementById("gu-attachments-list").innerHTML="";
+  document.getElementById("gu-attach-msg").textContent="";
   document.getElementById("goal-update-panel").hidden=false;
   document.getElementById("goal-update-panel").scrollIntoView({behavior:"smooth"});
 };
@@ -1282,7 +1460,24 @@ document.getElementById("save-update-btn").addEventListener("click",function(){
     note:document.getElementById("gu-note").value
   };
   apiFetch("/admin/goals/"+goalId+"/update",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)})
+  .then(function(result){
+    var updateId=result.update_id;
+    /* Upload pending files and links for this update */
+    var promises=[];
+    pendingUpdateFiles.forEach(function(f){
+      var fd=new FormData();fd.append("file",f);
+      if(updateId)fd.append("update_id",updateId);
+      promises.push(apiFetch("/admin/goals/"+goalId+"/attachments",{method:"POST",body:fd}));
+    });
+    pendingUpdateLinks.forEach(function(l){
+      var body={url:l.url,label:l.label};
+      if(updateId)body.update_id=updateId;
+      promises.push(apiFetch("/admin/goals/"+goalId+"/attachments/link",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}));
+    });
+    return Promise.all(promises);
+  })
   .then(function(){
+    pendingUpdateFiles=[];pendingUpdateLinks=[];
     msg.className="save-msg ok";msg.textContent="✅ Status aktualisiert";btn.disabled=false;
     goalsData=null;loadGoals();
     setTimeout(function(){document.getElementById("goal-update-panel").hidden=true;msg.textContent=""},1500);

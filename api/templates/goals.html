@@ -102,8 +102,16 @@ document.querySelectorAll(".goal-detail-btn").forEach(function(btn){
       btn.textContent="Details & Verlauf ▴";
       if(tl.querySelector(".goal-timeline-loading")){
         fetch(API+"/goals/"+goalId).then(function(r){return r.json()}).then(function(g){
-          if(!g.updates||!g.updates.length){tl.innerHTML='<p style="color:var(--text-secondary);font-size:.85rem">Noch keine Updates.</p>';return}
-          var h='<div class="goal-tl-items">';
+          var h='';
+          /* Goal-level attachments */
+          if(g.goal_attachments&&g.goal_attachments.length){
+            h+=renderPublicAttach(g.goal_attachments);
+          }
+          if(!g.updates||!g.updates.length){
+            if(!h)h='<p style="color:var(--text-secondary);font-size:.85rem">Noch keine Updates.</p>';
+            tl.innerHTML=h;return;
+          }
+          h+='<div class="goal-tl-items">';
           g.updates.forEach(function(u){
             var ds=(u.created_at||"").replace("T"," ").substring(0,16);
             h+='<div class="goal-tl-item">';
@@ -113,6 +121,10 @@ document.querySelectorAll(".goal-detail-btn").forEach(function(btn){
             h+='<strong>'+escHtml(u.new_status.replace("_"," "))+'</strong>';
             h+='</span>';
             if(u.note)h+='<div class="goal-tl-note">'+escHtml(u.note)+'</div>';
+            /* Update-level attachments */
+            if(u.attachments&&u.attachments.length){
+              h+=renderPublicAttach(u.attachments);
+            }
             h+='</div>';
           });
           h+='</div>';
@@ -127,6 +139,33 @@ document.querySelectorAll(".goal-detail-btn").forEach(function(btn){
 });
 
 function escHtml(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML}
+
+function renderPublicAttach(attachments){
+  var h='<div class="goal-attach-list">';
+  attachments.forEach(function(a){
+    if(a.kind==="image"){
+      h+='<a href="'+escHtml(a.url)+'" target="_blank" class="goal-attach-img">';
+      h+='<img src="'+escHtml(a.url)+'" alt="'+escHtml(a.label||"Bild")+'" loading="lazy">';
+      h+='</a>';
+    } else if(a.kind==="video"){
+      var yt=a.url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
+      var vim=a.url.match(/vimeo\.com\/(\d+)/);
+      if(yt){
+        h+='<div class="goal-attach-video"><iframe src="https://www.youtube.com/embed/'+escHtml(yt[1])+'" frameborder="0" allowfullscreen loading="lazy"></iframe></div>';
+      } else if(vim){
+        h+='<div class="goal-attach-video"><iframe src="https://player.vimeo.com/video/'+escHtml(vim[1])+'" frameborder="0" allowfullscreen loading="lazy"></iframe></div>';
+      } else {
+        h+='<div class="goal-attach-video"><video src="'+escHtml(a.url)+'" controls preload="metadata" style="max-width:100%;border-radius:8px"></video></div>';
+      }
+    } else if(a.kind==="document"){
+      h+='<a href="'+escHtml(a.url)+'" target="_blank" class="goal-attach-doc">📄 '+escHtml(a.label||a.filename||"Dokument")+'</a>';
+    } else {
+      h+='<a href="'+escHtml(a.url)+'" target="_blank" class="goal-attach-link">🔗 '+escHtml(a.label||a.url)+'</a>';
+    }
+  });
+  h+='</div>';
+  return h;
+}
 })();
 </script>
 {% endblock %}

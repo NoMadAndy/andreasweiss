@@ -1,6 +1,6 @@
 """FastAPI backend – Multi-tenant Wahlplattform."""
 
-VERSION = "3.12.0"
+VERSION = "3.13.0"
 
 import csv
 import hashlib
@@ -32,7 +32,7 @@ from db import (
     get_db, init_db, get_candidate, get_candidate_pages,
     get_candidate_links, get_all_candidates,
     get_platform_settings, set_platform_settings,
-    get_candidate_goals, get_goal_updates,
+    get_candidate_goals, get_goal_updates, get_goal_attachments,
 )
 from geoip import lookup, reload_reader, status as geoip_status, GEOIP_PATH
 from mailer import (
@@ -1959,6 +1959,7 @@ async def admin_list_goals(slug: str, _admin: str = Depends(verify_admin)):
     goals = get_candidate_goals(slug, public_only=False)
     for g in goals:
         g["updates"] = get_goal_updates(g["id"])
+        g["attachments"] = get_goal_attachments(g["id"])
     return {"goals": goals}
 
 
@@ -2036,6 +2037,10 @@ async def admin_delete_goal(slug: str, goal_id: int, _admin: str = Depends(verif
         db.commit()
     finally:
         db.close()
+    # Clean up uploaded files
+    goal_dir = os.path.join(UPLOAD_BASE, slug, "goals", str(goal_id))
+    if os.path.isdir(goal_dir):
+        shutil.rmtree(goal_dir, ignore_errors=True)
     return {"ok": True}
 
 
@@ -2060,10 +2065,11 @@ async def admin_goal_status_update(slug: str, goal_id: int, data: GoalUpdateData
             "INSERT INTO goal_updates (goal_id, old_status, new_status, note) VALUES (?,?,?,?)",
             (goal_id, existing["status"], data.new_status, data.note),
         )
+        update_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
         db.commit()
     finally:
         db.close()
-    return {"ok": True}
+    return {"ok": True, "update_id": update_id}
 
 
 @app.put("/api/{slug}/admin/goals/reorder")
@@ -2080,6 +2086,163 @@ async def admin_reorder_goals(slug: str, request: Request, _admin: str = Depends
                 "UPDATE candidate_goals SET sort_order=? WHERE id=? AND candidate_slug=?",
                 (i, gid, slug),
             )
+        db.commit()
+    finally:
+        db.close()
+    return {"ok": True}
+
+
+# ── Goal Attachments (Admin) ─────────────────────────────────────
+
+ALLOWED_ATTACH_TYPES = {
+    "image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml",
+    "application/pdf",
+    "video/mp4", "video/webm",
+}
+MAX_ATTACH_SIZE = 10 * 1024 * 1024  # 10 MB
+
+
+def _kind_from_mime(mime: str) -> str:
+    if mime.startswith("image/"):
+        return "image"
+    if mime.startswith("video/"):
+        return "video"
+    if mime == "application/pdf":
+        return "document"
+    return "link"
+
+
+@app.post("/api/{slug}/admin/goals/{goal_id}/attachments")
+async def admin_upload_goal_attachment(
+    slug: str,
+    goal_id: int,
+    file: UploadFile = File(...),
+    update_id: Optional[int] = None,
+    label: Optional[str] = None,
+    _admin: str = Depends(verify_admin),
+):
+    _require_candidate(slug)
+    if file.content_type not in ALLOWED_ATTACH_TYPES:
+        raise HTTPException(400, "Dateityp nicht erlaubt. Erlaubt: JPG, PNG, WebP, GIF, SVG, PDF, MP4, WebM")
+    raw = await file.read()
+    if len(raw) > MAX_ATTACH_SIZE:
+        raise HTTPException(400, f"Datei zu groß (max {MAX_ATTACH_SIZE // 1024 // 1024} MB)")
+    # Verify goal belongs to candidate
+    db = get_db()
+    try:
+        row = db.execute(
+            "SELECT id FROM candidate_goals WHERE id=? AND candidate_slug=?",
+            (goal_id, slug),
+        ).fetchone()
+        if not row:
+            raise HTTPException(404, "Ziel nicht gefunden")
+        if update_id:
+            urow = db.execute(
+                "SELECT id FROM goal_updates WHERE id=? AND goal_id=?",
+                (update_id, goal_id),
+            ).fetchone()
+            if not urow:
+                raise HTTPException(404, "Update nicht gefunden")
+        # Save file
+        upload_dir = os.path.join(UPLOAD_BASE, slug, "goals", str(goal_id))
+        os.makedirs(upload_dir, exist_ok=True)
+        safe_name = re.sub(r'[^\w.\-]', '_', file.filename or "file")[:80]
+        ts = datetime.now().strftime("%Y%m%d%H%M%S")
+        fname = f"{ts}_{safe_name}"
+        path = os.path.join(upload_dir, fname)
+        with open(path, "wb") as f:
+            f.write(raw)
+        url = f"/uploads/{slug}/goals/{goal_id}/{fname}"
+        kind = _kind_from_mime(file.content_type)
+        max_order = db.execute(
+            "SELECT COALESCE(MAX(sort_order),0) as m FROM goal_attachments WHERE goal_id=?",
+            (goal_id,),
+        ).fetchone()["m"]
+        cur = db.execute(
+            "INSERT INTO goal_attachments (goal_id, update_id, kind, url, filename, label, mime_type, sort_order) "
+            "VALUES (?,?,?,?,?,?,?,?)",
+            (goal_id, update_id, kind, url, fname, label or safe_name, file.content_type, max_order + 1),
+        )
+        db.commit()
+        attach_id = cur.lastrowid
+    finally:
+        db.close()
+    return {"ok": True, "id": attach_id, "url": url, "kind": kind, "filename": fname}
+
+
+@app.post("/api/{slug}/admin/goals/{goal_id}/attachments/link")
+async def admin_add_goal_link(
+    slug: str,
+    goal_id: int,
+    request: Request,
+    _admin: str = Depends(verify_admin),
+):
+    _require_candidate(slug)
+    body = await request.json()
+    url = (body.get("url") or "").strip()
+    lbl = (body.get("label") or "").strip()
+    update_id = body.get("update_id")
+    if not url:
+        raise HTTPException(400, "URL erforderlich")
+    if len(url) > 2000:
+        raise HTTPException(400, "URL zu lang")
+    db = get_db()
+    try:
+        row = db.execute(
+            "SELECT id FROM candidate_goals WHERE id=? AND candidate_slug=?",
+            (goal_id, slug),
+        ).fetchone()
+        if not row:
+            raise HTTPException(404, "Ziel nicht gefunden")
+        # Determine kind from URL
+        kind = "link"
+        lower = url.lower()
+        if any(lower.endswith(ext) for ext in (".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg")):
+            kind = "image"
+        elif any(lower.endswith(ext) for ext in (".mp4", ".webm")):
+            kind = "video"
+        elif any(lower.endswith(ext) for ext in (".pdf",)):
+            kind = "document"
+        elif "youtube.com" in lower or "youtu.be" in lower or "vimeo.com" in lower:
+            kind = "video"
+        max_order = db.execute(
+            "SELECT COALESCE(MAX(sort_order),0) as m FROM goal_attachments WHERE goal_id=?",
+            (goal_id,),
+        ).fetchone()["m"]
+        cur = db.execute(
+            "INSERT INTO goal_attachments (goal_id, update_id, kind, url, filename, label, mime_type, sort_order) "
+            "VALUES (?,?,?,?,?,?,?,?)",
+            (goal_id, update_id, kind, url, "", lbl or url[:80], "", max_order + 1),
+        )
+        db.commit()
+        attach_id = cur.lastrowid
+    finally:
+        db.close()
+    return {"ok": True, "id": attach_id, "kind": kind}
+
+
+@app.delete("/api/{slug}/admin/goals/{goal_id}/attachments/{attach_id}")
+async def admin_delete_goal_attachment(
+    slug: str, goal_id: int, attach_id: int,
+    _admin: str = Depends(verify_admin),
+):
+    _require_candidate(slug)
+    db = get_db()
+    try:
+        row = db.execute(
+            "SELECT a.id, a.url, a.filename FROM goal_attachments a "
+            "JOIN candidate_goals g ON a.goal_id=g.id "
+            "WHERE a.id=? AND a.goal_id=? AND g.candidate_slug=?",
+            (attach_id, goal_id, slug),
+        ).fetchone()
+        if not row:
+            raise HTTPException(404, "Anhang nicht gefunden")
+        # Delete file if local
+        if row["url"].startswith("/uploads/"):
+            fpath = os.path.join(UPLOAD_BASE, row["url"].replace("/uploads/", "", 1))
+            if os.path.isfile(fpath):
+                os.remove(fpath)
+        db.execute("DELETE FROM goal_attachments WHERE id=?", (attach_id,))
         db.commit()
     finally:
         db.close()
@@ -2121,6 +2284,12 @@ async def public_goal_detail(slug: str, goal_id: int):
             raise HTTPException(404, "Ziel nicht gefunden")
         goal = dict(row)
         goal["updates"] = get_goal_updates(goal_id)
+        goal["attachments"] = get_goal_attachments(goal_id)
+        # Also attach per-update attachments
+        for u in goal["updates"]:
+            u["attachments"] = [a for a in goal["attachments"] if a.get("update_id") == u["id"]]
+        # Goal-level attachments (not tied to an update)
+        goal["goal_attachments"] = [a for a in goal["attachments"] if not a.get("update_id")]
     finally:
         db.close()
     return goal

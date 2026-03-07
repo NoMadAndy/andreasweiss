@@ -284,10 +284,28 @@ def init_db():
             FOREIGN KEY (goal_id) REFERENCES candidate_goals(id) ON DELETE CASCADE
         );
 
+        -- ── Goal Attachments (Bilder, Dokumente, Videos, Links) ─
+        CREATE TABLE IF NOT EXISTS goal_attachments (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            goal_id         INTEGER NOT NULL,
+            update_id       INTEGER,
+            kind            TEXT NOT NULL DEFAULT 'link',
+            url             TEXT NOT NULL,
+            filename        TEXT DEFAULT '',
+            label           TEXT DEFAULT '',
+            mime_type       TEXT DEFAULT '',
+            sort_order      INTEGER DEFAULT 0,
+            created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+            FOREIGN KEY (goal_id) REFERENCES candidate_goals(id) ON DELETE CASCADE,
+            FOREIGN KEY (update_id) REFERENCES goal_updates(id) ON DELETE CASCADE
+        );
+
         -- ── Indexes ─────────────────────────────────────────────
         CREATE INDEX IF NOT EXISTS idx_goals_cand    ON candidate_goals(candidate_slug);
         CREATE INDEX IF NOT EXISTS idx_goals_public  ON candidate_goals(candidate_slug, is_public);
         CREATE INDEX IF NOT EXISTS idx_goal_updates  ON goal_updates(goal_id);
+        CREATE INDEX IF NOT EXISTS idx_goal_attach   ON goal_attachments(goal_id);
+        CREATE INDEX IF NOT EXISTS idx_goal_attach_upd ON goal_attachments(update_id);
         CREATE INDEX IF NOT EXISTS idx_visits_cand   ON visits(candidate_slug);
         CREATE INDEX IF NOT EXISTS idx_visits_page   ON visits(page);
         CREATE INDEX IF NOT EXISTS idx_visits_ts     ON visits(ts);
@@ -477,6 +495,25 @@ def get_goal_updates(goal_id: int) -> list[dict]:
             "SELECT * FROM goal_updates WHERE goal_id=? ORDER BY created_at DESC",
             (goal_id,),
         ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        db.close()
+
+
+def get_goal_attachments(goal_id: int, update_id: int | None = None) -> list[dict]:
+    """Return attachments for a goal or a specific update."""
+    db = get_db()
+    try:
+        if update_id is not None:
+            rows = db.execute(
+                "SELECT * FROM goal_attachments WHERE goal_id=? AND update_id=? ORDER BY sort_order, id",
+                (goal_id, update_id),
+            ).fetchall()
+        else:
+            rows = db.execute(
+                "SELECT * FROM goal_attachments WHERE goal_id=? ORDER BY sort_order, id",
+                (goal_id,),
+            ).fetchall()
         return [dict(r) for r in rows]
     finally:
         db.close()
