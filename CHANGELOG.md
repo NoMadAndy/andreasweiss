@@ -2,6 +2,17 @@
 
 Alle relevanten Änderungen an diesem Projekt werden hier dokumentiert.
 
+## [3.14.0] – 2026-03-08
+
+### Hinzugefügt
+
+- **Tags für Ziele:** Ziele, Projekte, Vorhaben und Anträge können mit komma-getrennten Tags versehen werden (z. B. Infrastruktur, Kinder, Umwelt)
+- **Tag-Filter:** Sowohl im Admin-Bereich als auch in der öffentlichen Ansicht können Ziele nach Tags gefiltert werden
+- **Hierarchische Ziele:** Ziele können einem übergeordneten Ziel zugeordnet werden (Ziel → Projekt → Vorhaben → Antrag)
+- **Kinderziele-Fortschritt:** Öffentliche Ansicht zeigt Unterziele mit Fortschrittsbalken unter dem Elternziel
+- **Admin: Übergeordnetes Ziel:** Dropdown im Ziel-Formular zur Auswahl des Elternziels
+- **Admin: Ebenen-Filter:** Filter für Hauptziele vs. Unterziele im Admin-Bereich
+
 ## [3.13.0] – 2025-07-17
 
 ### Hinzugefügt

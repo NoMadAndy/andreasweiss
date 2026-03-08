@@ -1,6 +1,6 @@
 """FastAPI backend – Multi-tenant Wahlplattform."""
 
-VERSION = "3.13.0"
+VERSION = "3.14.0"
 
 import csv
 import hashlib
@@ -371,6 +371,8 @@ class GoalData(BaseModel):
     priority: str = Field("mittel", max_length=10)
     target_date: str = Field("", max_length=20)
     is_public: int = Field(1, ge=0, le=1)
+    tags: list[str] = Field(default_factory=list)
+    parent_id: Optional[int] = None
 
 
 class GoalUpdateData(BaseModel):
@@ -1972,16 +1974,27 @@ async def admin_create_goal(slug: str, data: GoalData, _admin: str = Depends(ver
         raise HTTPException(400, f"Ungültiger Status: {data.status}")
     if data.priority not in GOAL_PRIORITIES:
         raise HTTPException(400, f"Ungültige Priorität: {data.priority}")
+    # Validate tags
+    tags_clean = [t.strip()[:50] for t in data.tags if t.strip()][:20]
+    tags_json = json.dumps(tags_clean, ensure_ascii=False)
+    # Validate parent_id
     db = get_db()
     try:
+        if data.parent_id is not None:
+            parent = db.execute(
+                "SELECT id FROM candidate_goals WHERE id=? AND candidate_slug=?",
+                (data.parent_id, slug),
+            ).fetchone()
+            if not parent:
+                raise HTTPException(400, "Übergeordnetes Ziel nicht gefunden")
         max_order = db.execute(
             "SELECT COALESCE(MAX(sort_order), 0) as m FROM candidate_goals WHERE candidate_slug=?",
             (slug,),
         ).fetchone()["m"]
         cur = db.execute(
-            "INSERT INTO candidate_goals (candidate_slug, category, title, description, status, priority, target_date, is_public, sort_order) "
-            "VALUES (?,?,?,?,?,?,?,?,?)",
-            (slug, data.category, data.title, data.description, data.status, data.priority, data.target_date, data.is_public, max_order + 1),
+            "INSERT INTO candidate_goals (candidate_slug, category, title, description, status, priority, target_date, is_public, sort_order, tags, parent_id) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            (slug, data.category, data.title, data.description, data.status, data.priority, data.target_date, data.is_public, max_order + 1, tags_json, data.parent_id),
         )
         goal_id = cur.lastrowid
         db.execute(
@@ -2003,6 +2016,8 @@ async def admin_update_goal(slug: str, goal_id: int, data: GoalData, _admin: str
         raise HTTPException(400, f"Ungültiger Status: {data.status}")
     if data.priority not in GOAL_PRIORITIES:
         raise HTTPException(400, f"Ungültige Priorität: {data.priority}")
+    tags_clean = [t.strip()[:50] for t in data.tags if t.strip()][:20]
+    tags_json = json.dumps(tags_clean, ensure_ascii=False)
     db = get_db()
     try:
         existing = db.execute(
@@ -2011,11 +2026,21 @@ async def admin_update_goal(slug: str, goal_id: int, data: GoalData, _admin: str
         ).fetchone()
         if not existing:
             raise HTTPException(404, "Ziel nicht gefunden")
+        # Validate parent_id (prevent self-reference and circular refs)
+        if data.parent_id is not None:
+            if data.parent_id == goal_id:
+                raise HTTPException(400, "Ein Ziel kann nicht sein eigenes Elternelement sein")
+            parent = db.execute(
+                "SELECT id FROM candidate_goals WHERE id=? AND candidate_slug=?",
+                (data.parent_id, slug),
+            ).fetchone()
+            if not parent:
+                raise HTTPException(400, "Übergeordnetes Ziel nicht gefunden")
         db.execute(
             "UPDATE candidate_goals SET category=?, title=?, description=?, status=?, priority=?, "
-            "target_date=?, is_public=?, updated_at=datetime('now') WHERE id=? AND candidate_slug=?",
+            "target_date=?, is_public=?, tags=?, parent_id=?, updated_at=datetime('now') WHERE id=? AND candidate_slug=?",
             (data.category, data.title, data.description, data.status, data.priority,
-             data.target_date, data.is_public, goal_id, slug),
+             data.target_date, data.is_public, tags_json, data.parent_id, goal_id, slug),
         )
         if existing["status"] != data.status:
             db.execute(
@@ -2261,6 +2286,7 @@ async def public_goals(slug: str):
     total = len(goals)
     done = sum(1 for g in goals if g["status"] in ("umgesetzt", "angenommen"))
     by_category = {}
+    all_tags = set()
     for g in goals:
         cat = g["category"]
         if cat not in by_category:
@@ -2268,7 +2294,9 @@ async def public_goals(slug: str):
         by_category[cat]["total"] += 1
         if g["status"] in ("umgesetzt", "angenommen"):
             by_category[cat]["done"] += 1
-    return {"goals": goals, "total": total, "done": done, "by_category": by_category}
+        for tag in g.get("tags", []):
+            all_tags.add(tag)
+    return {"goals": goals, "total": total, "done": done, "by_category": by_category, "all_tags": sorted(all_tags)}
 
 
 @app.get("/api/{slug}/goals/{goal_id}")
@@ -2283,6 +2311,7 @@ async def public_goal_detail(slug: str, goal_id: int):
         if not row:
             raise HTTPException(404, "Ziel nicht gefunden")
         goal = dict(row)
+        goal["tags"] = json.loads(goal["tags"]) if goal.get("tags") else []
         goal["updates"] = get_goal_updates(goal_id)
         goal["attachments"] = get_goal_attachments(goal_id)
         # Also attach per-update attachments

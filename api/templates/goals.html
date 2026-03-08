@@ -38,9 +38,29 @@
     <button class="goals-filter-btn" data-cat="antrag">📝 Anträge</button>
 </div>
 
+{% set all_tags = [] %}
+{% for goal in goals %}
+  {% for tag in goal.tags %}
+    {% if tag not in all_tags %}
+      {% if all_tags.append(tag) %}{% endif %}
+    {% endif %}
+  {% endfor %}
+{% endfor %}
+{% if all_tags %}
+<div class="goals-filters goals-tag-filters" id="goals-tag-filters">
+    <span style="font-size:.82rem;color:var(--text-secondary);font-weight:600;margin-right:.25rem">🏷️ Tags:</span>
+    <button class="goals-filter-btn goals-tag-btn active" data-tag="">Alle</button>
+    {% for tag in all_tags|sort %}
+    <button class="goals-filter-btn goals-tag-btn" data-tag="{{ tag }}">{{ tag }}</button>
+    {% endfor %}
+</div>
+{% endif %}
+
 <div class="goals-list" id="goals-list">
+    {% set root_goals = goals|selectattr('parent_id', 'none')|list + goals|selectattr('parent_id', 'equalto', 0)|list %}
     {% for goal in goals %}
-    <div class="goal-card" data-category="{{ goal.category }}" data-status="{{ goal.status }}">
+    {% if not goal.parent_id %}
+    <div class="goal-card goal-card--root" data-category="{{ goal.category }}" data-status="{{ goal.status }}" data-tags="{{ goal.tags|join(',') }}" data-goal-id="{{ goal.id }}">
         <div class="goal-header">
             <span class="goal-cat-icon">
                 {% if goal.category == 'ziel' %}🎯{% elif goal.category == 'projekt' %}🏗️{% elif goal.category == 'vorhaben' %}💡{% elif goal.category == 'antrag' %}📝{% endif %}
@@ -50,6 +70,13 @@
             </span>
         </div>
         <h3 class="goal-title">{{ goal.title }}</h3>
+        {% if goal.tags %}
+        <div class="goal-tags">
+            {% for tag in goal.tags %}
+            <span class="goal-tag">🏷️ {{ tag }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
         {% if goal.description %}
         <div class="goal-desc md-content">{{ goal.description | markdown }}</div>
         {% endif %}
@@ -57,11 +84,55 @@
             {% if goal.target_date %}<span>📅 {{ goal.target_date }}</span>{% endif %}
             {% if goal.priority == 'hoch' %}<span>🔴 Hohe Priorität</span>{% endif %}
         </div>
+        {# Show children count #}
+        {% set children = goals|selectattr('parent_id', 'equalto', goal.id)|list %}
+        {% if children %}
+        <div class="goal-children-summary">
+            {% set child_done = children|selectattr('status', 'in', ['umgesetzt', 'angenommen'])|list|length %}
+            <span>📦 {{ children|length }} Unterziele ({{ child_done }} abgeschlossen)</span>
+            <div class="goals-track goals-track--small"><div class="goals-fill" style="width:{{ ((child_done / children|length * 100) | round | int) if children|length else 0 }}%"></div></div>
+        </div>
+        {# Render children inline #}
+        <div class="goal-children">
+            {% for child in children %}
+            <div class="goal-card goal-card--child" data-category="{{ child.category }}" data-status="{{ child.status }}" data-tags="{{ child.tags|join(',') }}" data-goal-id="{{ child.id }}">
+                <div class="goal-header">
+                    <span class="goal-cat-icon">
+                        {% if child.category == 'ziel' %}🎯{% elif child.category == 'projekt' %}🏗️{% elif child.category == 'vorhaben' %}💡{% elif child.category == 'antrag' %}📝{% endif %}
+                    </span>
+                    <span class="goal-status goal-status--{{ child.status }}">
+                        {% if child.status == 'idee' %}💭 Idee{% elif child.status == 'geplant' %}📋 Geplant{% elif child.status == 'in_arbeit' %}🔨 In Arbeit{% elif child.status == 'eingereicht' %}📮 Eingereicht{% elif child.status == 'umgesetzt' %}✅ Umgesetzt{% elif child.status == 'teilweise_umgesetzt' %}🔶 Teilw. umgesetzt{% elif child.status == 'angenommen' %}✅ Angenommen{% elif child.status == 'abgelehnt' %}❌ Abgelehnt{% elif child.status == 'pausiert' %}⏸️ Pausiert{% endif %}
+                    </span>
+                </div>
+                <h3 class="goal-title">{{ child.title }}</h3>
+                {% if child.tags %}
+                <div class="goal-tags">
+                    {% for tag in child.tags %}
+                    <span class="goal-tag">🏷️ {{ tag }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% if child.description %}
+                <div class="goal-desc md-content">{{ child.description | markdown }}</div>
+                {% endif %}
+                <div class="goal-meta">
+                    {% if child.target_date %}<span>📅 {{ child.target_date }}</span>{% endif %}
+                    {% if child.priority == 'hoch' %}<span>🔴 Hohe Priorität</span>{% endif %}
+                </div>
+                <button class="goal-detail-btn" data-goal-id="{{ child.id }}">Details & Verlauf ▾</button>
+                <div class="goal-timeline hidden" id="goal-timeline-{{ child.id }}">
+                    <p class="goal-timeline-loading">Lade Verlauf…</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
         <button class="goal-detail-btn" data-goal-id="{{ goal.id }}">Details & Verlauf ▾</button>
         <div class="goal-timeline hidden" id="goal-timeline-{{ goal.id }}">
             <p class="goal-timeline-loading">Lade Verlauf…</p>
         </div>
     </div>
+    {% endif %}
     {% endfor %}
 </div>
 {% else %}
@@ -79,16 +150,58 @@
 var SLUG=document.body.dataset.slug||"";
 var API="/api/"+SLUG;
 
+var activeCat="";
+var activeTag="";
+
+function applyFilters(){
+  document.querySelectorAll(".goal-card").forEach(function(card){
+    var matchCat=!activeCat||card.dataset.category===activeCat;
+    var cardTags=(card.dataset.tags||"").split(",").filter(function(t){return t});
+    var matchTag=!activeTag||cardTags.indexOf(activeTag)!==-1;
+    var show=matchCat&&matchTag;
+    // For root cards, also check if any child matches
+    if(!show&&card.classList.contains("goal-card--root")){
+      var children=card.querySelectorAll(".goal-card--child");
+      children.forEach(function(child){
+        var cCat=!activeCat||child.dataset.category===activeCat;
+        var cTags=(child.dataset.tags||"").split(",").filter(function(t){return t});
+        var cTag=!activeTag||cTags.indexOf(activeTag)!==-1;
+        if(cCat&&cTag)show=true;
+      });
+    }
+    card.style.display=show?"":"none";
+    // Filter children within root cards
+    if(card.classList.contains("goal-card--root")){
+      var children=card.querySelectorAll(".goal-card--child");
+      children.forEach(function(child){
+        var cCat=!activeCat||child.dataset.category===activeCat;
+        var cTags=(child.dataset.tags||"").split(",").filter(function(t){return t});
+        var cTag=!activeTag||cTags.indexOf(activeTag)!==-1;
+        child.style.display=(cCat&&cTag)?"":"none";
+      });
+    }
+  });
+}
+
 // Category filter
-var filterBtns=document.querySelectorAll(".goals-filter-btn");
+var filterBtns=document.querySelectorAll("#goals-filters .goals-filter-btn");
 filterBtns.forEach(function(btn){
   btn.addEventListener("click",function(){
     filterBtns.forEach(function(b){b.classList.remove("active")});
     btn.classList.add("active");
-    var cat=btn.dataset.cat;
-    document.querySelectorAll(".goal-card").forEach(function(card){
-      card.style.display=(!cat||card.dataset.category===cat)?"":"none";
-    });
+    activeCat=btn.dataset.cat||"";
+    applyFilters();
+  });
+});
+
+// Tag filter
+var tagBtns=document.querySelectorAll(".goals-tag-btn");
+tagBtns.forEach(function(btn){
+  btn.addEventListener("click",function(){
+    tagBtns.forEach(function(b){b.classList.remove("active")});
+    btn.classList.add("active");
+    activeTag=btn.dataset.tag||"";
+    applyFilters();
   });
 });
 

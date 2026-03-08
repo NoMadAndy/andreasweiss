@@ -268,9 +268,12 @@ def init_db():
             target_date     TEXT DEFAULT '',
             is_public       INTEGER DEFAULT 1,
             sort_order      INTEGER DEFAULT 0,
+            tags            TEXT DEFAULT '[]',
+            parent_id       INTEGER DEFAULT NULL,
             created_at      TEXT NOT NULL DEFAULT (datetime('now')),
             updated_at      TEXT NOT NULL DEFAULT (datetime('now')),
-            FOREIGN KEY (candidate_slug) REFERENCES candidates(slug) ON DELETE CASCADE
+            FOREIGN KEY (candidate_slug) REFERENCES candidates(slug) ON DELETE CASCADE,
+            FOREIGN KEY (parent_id) REFERENCES candidate_goals(id) ON DELETE SET NULL
         );
 
         -- ── Goal Updates (Timeline) ─────────────────────────────────
@@ -373,6 +376,10 @@ def init_db():
     })
     _migrate_columns(conn, "visits", {
         "device_type": "TEXT DEFAULT 'unknown'",
+    })
+    _migrate_columns(conn, "candidate_goals", {
+        "tags": "TEXT DEFAULT '[]'",
+        "parent_id": "INTEGER DEFAULT NULL",
     })
     conn.close()
 
@@ -482,7 +489,12 @@ def get_candidate_goals(slug: str, public_only: bool = False) -> list[dict]:
                 "SELECT * FROM candidate_goals WHERE candidate_slug=? ORDER BY sort_order, id",
                 (slug,),
             ).fetchall()
-        return [dict(r) for r in rows]
+        result = []
+        for r in rows:
+            d = dict(r)
+            d["tags"] = json.loads(d["tags"]) if d.get("tags") else []
+            result.append(d)
+        return result
     finally:
         db.close()
 
